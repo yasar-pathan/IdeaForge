@@ -23,13 +23,22 @@ function SignInForm() {
     setLoading(true);
     try {
       const sb = createBrowserSupabase();
-      const { error: err } = await sb.auth.signInWithPassword({ email, password });
+      const { error: err } = await sb.auth.signInWithPassword({ email: email.trim(), password });
       if (err) {
         setError(err.message);
         return;
       }
       router.refresh();
       router.push(next);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Sign-in request failed';
+      const isNetworkFailure =
+        msg.toLowerCase().includes('failed to fetch') || msg.toLowerCase().includes('network');
+      setError(
+        isNetworkFailure
+          ? 'Unable to reach authentication server. Check internet/VPN/firewall and try again.'
+          : msg
+      );
     } finally {
       setLoading(false);
     }

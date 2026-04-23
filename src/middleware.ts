@@ -32,9 +32,17 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user: { id: string } | null = null;
+  try {
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
+    user = authUser ? { id: authUser.id } : null;
+  } catch (error) {
+    // Transient auth network failures should not crash request handling.
+    // Route handlers/pages can still decide what to do for missing auth.
+    console.warn('Middleware auth check failed:', error);
+  }
 
   const pathname = request.nextUrl.pathname;
   const isApi = pathname.startsWith('/api');

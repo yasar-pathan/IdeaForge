@@ -40,6 +40,15 @@ export default function SignUpPage() {
       }
       router.refresh();
       router.push('/dashboard');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Sign-up request failed';
+      const isNetworkFailure =
+        msg.toLowerCase().includes('failed to fetch') || msg.toLowerCase().includes('network');
+      setError(
+        isNetworkFailure
+          ? 'Unable to reach authentication server. Check internet/VPN/firewall and try again.'
+          : msg
+      );
     } finally {
       setLoading(false);
     }

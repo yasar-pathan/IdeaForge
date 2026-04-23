@@ -30,13 +30,18 @@ export async function createServerSupabase() {
 
 /** Current Supabase Auth user id, or null. */
 export async function getSessionUserId(): Promise<string | null> {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  if (error || !user) return null;
-  return user.id;
+  try {
+    const supabase = await createServerSupabase();
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+    if (error || !user) return null;
+    return user.id;
+  } catch (error) {
+    console.warn('Supabase getSessionUserId failed:', error);
+    return null;
+  }
 }
 
 /** Service role — bypasses RLS (API routes that already checked auth). */

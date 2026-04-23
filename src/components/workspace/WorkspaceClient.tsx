@@ -10,6 +10,7 @@ import { WORKSPACE_MODULE_ROWS, resultsHashForWorkspaceModule } from '@/lib/modu
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { HyperSpeedLoader } from '@/components/ui/HyperSpeedLoader';
 import { MODULE_STATUS_KEYS } from '@/lib/modules';
 
 type ModuleStatusRow = Record<string, boolean | string | null | undefined>;
@@ -78,9 +79,7 @@ export function WorkspaceClient({ sessionId }: { sessionId: string }) {
   );
 
   if (isLoading && !data) {
-    return (
-      <div className="mx-auto max-w-3xl px-4 py-24 text-center text-[var(--text-muted)]">Loading workspace…</div>
-    );
+    return <HyperSpeedLoader title="Forging your workspace" subtitle="Booting modules and linking result pipeline" />;
   }
 
   if (error || !data) {
