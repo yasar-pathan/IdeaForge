@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
 import { Hero } from './Hero';
 import { Features } from './Features';
-import { HowItWorks } from './HowItWorks';
+import { ScrollNarrative } from './ScrollNarrative';
 import { Pricing } from './Pricing';
 import { Footer } from '@/components/layout/Footer';
 import { IdeaForgeModal } from './IdeaForgeModal';
@@ -31,7 +31,7 @@ export function LandingPage() {
         onExample={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
       />
       <Features />
-      <HowItWorks />
+      <ScrollNarrative />
       <Pricing />
       <Footer />
       <IdeaForgeModal open={modal} onOpenChange={setModal} />
