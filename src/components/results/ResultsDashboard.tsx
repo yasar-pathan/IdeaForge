@@ -15,6 +15,7 @@ import { PitchSpeechCard } from './modules/PitchSpeechCard';
 import { MarketResearchCard } from './modules/MarketResearchCard';
 import { CompetitorCard } from './modules/CompetitorCard';
 import { FeaturesCard } from './modules/FeaturesCard';
+import { FeatureSuggestionsCard } from './modules/FeatureSuggestionsCard';
 import { DomainCard } from './modules/DomainCard';
 import { RoastCard } from './modules/RoastCard';
 import { ChecklistCard } from './modules/ChecklistCard';
@@ -110,6 +111,7 @@ export function ResultsDashboard({ sessionId }: { sessionId: string }) {
   const market = data.market_research as Record<string, unknown> | null;
   const comp = data.competitor_intelligence as Record<string, unknown> | null;
   const feat = data.feature_recommendations as Record<string, unknown> | null;
+  const featSuggestions = data.feature_suggestions as Record<string, unknown> | null;
   const dom = data.domain_suggestions as Record<string, unknown> | null;
   const roast = data.roast_analysis as Record<string, unknown> | null;
   const check = data.validation_checklist as Record<string, unknown> | null;
@@ -207,6 +209,7 @@ export function ResultsDashboard({ sessionId }: { sessionId: string }) {
           <MarketResearchCard data={market} />
           <CompetitorCard data={comp} />
           <FeaturesCard data={feat} />
+          <FeatureSuggestionsCard data={featSuggestions} />
           <DomainCard data={dom} />
           <RoastCard data={roast} />
           <ChecklistCard data={check} sessionId={sessionId} />
@@ -217,7 +220,12 @@ export function ResultsDashboard({ sessionId }: { sessionId: string }) {
         </motion.div>
       </div>
 
-      <DownloadBar sessionId={sessionId} ideaTitle={title} />
+      <DownloadBar
+        sessionId={sessionId}
+        ideaTitle={title}
+        shareToken={String(session?.share_token ?? '')}
+        isPublic={Boolean(session?.is_public)}
+      />
     </div>
   );
 }

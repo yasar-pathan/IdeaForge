@@ -10,17 +10,32 @@ import { Download, Share2, FileDown } from 'lucide-react';
 export function DownloadBar({
   sessionId,
   ideaTitle,
+  shareToken,
+  isPublic: initialIsPublic = false,
 }: {
   sessionId: string;
   ideaTitle: string;
+  shareToken?: string;
+  isPublic?: boolean;
 }) {
   const [downloading, setDownloading] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [isPublic, setIsPublic] = useState(initialIsPublic);
 
   async function downloadPpt() {
     setDownloading(true);
     try {
-      const res = await fetch(`/api/download-ppt?session_id=${sessionId}`, { credentials: 'include' });
+      let res = await fetch(`/api/download-ppt?session_id=${sessionId}`, { credentials: 'include' });
+      if (res.status === 404) {
+        toast('Generating your PPT...');
+        const genRes = await fetch(`/api/sessions/${sessionId}/generate-module`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ module: 'ppt_slides' })
+        });
+        if (!genRes.ok) throw new Error('Generation failed');
+        res = await fetch(`/api/download-ppt?session_id=${sessionId}`, { credentials: 'include' });
+      }
       if (!res.ok) throw new Error('not ready');
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -57,10 +72,29 @@ export function DownloadBar({
     }
   }
 
-  function share() {
-    const url = typeof window !== 'undefined' ? window.location.href : '';
+  async function share() {
+    const base = typeof window !== 'undefined' ? window.location.origin : '';
+    const url = shareToken ? `${base}/share/${shareToken}` : (typeof window !== 'undefined' ? window.location.href : '');
     void navigator.clipboard.writeText(url);
     toast.success('Link copied to clipboard');
+  }
+
+  async function togglePublic() {
+    try {
+      const next = !isPublic;
+      const res = await fetch(`/api/sessions/${sessionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ is_public: next }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || 'Failed to update visibility');
+      setIsPublic(next);
+      toast.success(next ? 'Session is now public' : 'Session is now private');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to update visibility');
+    }
   }
 
   return (
@@ -74,6 +108,9 @@ export function DownloadBar({
           <span className="text-[var(--text-secondary)]">{ideaTitle || 'Analysis'}</span>
         </p>
         <div className="flex flex-wrap items-center gap-2">
+          <Button variant={isPublic ? 'primary' : 'secondary'} size="sm" onClick={() => void togglePublic()}>
+            {isPublic ? 'Public' : 'Make Public'}
+          </Button>
           <Button variant="secondary" size="sm" onClick={share}>
             <Share2 className="h-4 w-4" />
             Share link

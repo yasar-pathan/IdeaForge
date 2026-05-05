@@ -33,6 +33,7 @@ export async function GET(
       competitorIntelligence,
       successProbability,
       featureRecommendations,
+      featureSuggestions,
       domainSuggestions,
       roastAnalysis,
       validationChecklist,
@@ -48,6 +49,7 @@ export async function GET(
       supabaseAdmin.from('competitor_intelligence').select('*').eq('session_id', sessionId).single(),
       supabaseAdmin.from('success_probability').select('*').eq('session_id', sessionId).single(),
       supabaseAdmin.from('feature_recommendations').select('*').eq('session_id', sessionId).single(),
+      supabaseAdmin.from('feature_suggestions').select('*').eq('session_id', sessionId).single(),
       supabaseAdmin.from('domain_suggestions').select('*').eq('session_id', sessionId).single(),
       supabaseAdmin.from('roast_analysis').select('*').eq('session_id', sessionId).single(),
       supabaseAdmin.from('validation_checklist').select('*').eq('session_id', sessionId).single(),
@@ -70,6 +72,7 @@ export async function GET(
       competitor_intelligence: competitorIntelligence.data,
       success_probability: successProbability.data,
       feature_recommendations: featureRecommendations.data,
+      feature_suggestions: featureSuggestions.data,
       domain_suggestions: domainSuggestions.data,
       roast_analysis: roastAnalysis.data,
       validation_checklist: validationChecklist.data,
@@ -109,8 +112,9 @@ export async function PATCH(
         : body.idea_category === null
           ? null
           : undefined;
+    const is_public = typeof body.is_public === 'boolean' ? body.is_public : undefined;
 
-    if (idea_title === undefined && idea_category === undefined) {
+    if (idea_title === undefined && idea_category === undefined && is_public === undefined) {
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
     }
 
@@ -127,12 +131,13 @@ export async function PATCH(
     const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (idea_title !== undefined) patch.idea_title = idea_title;
     if (idea_category !== undefined) patch.idea_category = idea_category;
+    if (is_public !== undefined) patch.is_public = is_public;
 
     const { data: updated, error: updErr } = await supabaseAdmin
       .from('idea_sessions')
       .update(patch)
       .eq('id', sessionId)
-      .select('id, idea_title, idea_category, status, created_at')
+      .select('id, idea_title, idea_category, is_public, share_token, status, created_at')
       .single();
 
     if (updErr) throw updErr;

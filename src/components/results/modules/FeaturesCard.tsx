@@ -52,6 +52,28 @@ export function FeaturesCard({ data }: { data: Record<string, unknown> | null })
   const v1 = (data?.v1_features as F[]) ?? [];
   const v2 = (data?.v2_features as F[]) ?? [];
   const wf = (data?.dev_workflow as Record<string, unknown>) ?? {};
+  const backlog = [...mvp, ...v1, ...v2];
+
+  const priorityRank = (p: string | undefined) => {
+    switch (p) {
+      case 'Critical':
+        return 4;
+      case 'High':
+        return 3;
+      case 'Medium':
+        return 2;
+      case 'Low':
+        return 1;
+      default:
+        return 0;
+    }
+  };
+
+  const backlogSorted = [...backlog].sort((a, b) => {
+    const pr = priorityRank(b.priority) - priorityRank(a.priority);
+    if (pr !== 0) return pr;
+    return (a.estimated_days ?? 0) - (b.estimated_days ?? 0);
+  });
 
   return (
     <section
@@ -63,7 +85,7 @@ export function FeaturesCard({ data }: { data: Record<string, unknown> | null })
           <Wrench className="h-5 w-5" />
         </div>
         <div>
-          <h2 className="font-display text-xl font-bold text-[var(--text-primary)]">Feature roadmap</h2>
+          <h2 className="font-display text-xl font-bold text-[var(--text-primary)]">Feature roadmap + suggestions</h2>
           <p className="text-sm text-[var(--text-secondary)]">MVP through V2</p>
         </div>
       </div>
@@ -74,6 +96,7 @@ export function FeaturesCard({ data }: { data: Record<string, unknown> | null })
             ['mvp', 'MVP', 'text-[var(--success)]'],
             ['v1', 'V1', 'text-[var(--accent-primary)]'],
             ['v2', 'V2', 'text-[#A855F7]'],
+            ['backlog', 'Backlog', 'text-[var(--text-primary)]'],
           ].map(([v, l, c]) => (
             <Tabs.Trigger
               key={v}
@@ -92,6 +115,9 @@ export function FeaturesCard({ data }: { data: Record<string, unknown> | null })
         </Tabs.Content>
         <Tabs.Content value="v2">
           <FeatureGrid items={v2} />
+        </Tabs.Content>
+        <Tabs.Content value="backlog">
+          <FeatureGrid items={backlogSorted} />
         </Tabs.Content>
       </Tabs.Root>
 

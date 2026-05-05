@@ -106,6 +106,18 @@ CREATE TABLE IF NOT EXISTS public.feature_recommendations (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- FEATURE SUGGESTIONS TABLE
+CREATE TABLE IF NOT EXISTS public.feature_suggestions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  session_id UUID REFERENCES public.idea_sessions(id) ON DELETE CASCADE UNIQUE,
+  must_have_features JSONB DEFAULT '[]',
+  differentiator_features JSONB DEFAULT '[]',
+  retention_features JSONB DEFAULT '[]',
+  monetization_features JSONB DEFAULT '[]',
+  recommended_next_3 JSONB DEFAULT '[]',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- DOMAIN SUGGESTIONS TABLE
 CREATE TABLE IF NOT EXISTS public.domain_suggestions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -196,6 +208,7 @@ CREATE TABLE IF NOT EXISTS public.module_status (
   competitor_intelligence BOOLEAN DEFAULT FALSE,
   success_probability BOOLEAN DEFAULT FALSE,
   feature_recommendations BOOLEAN DEFAULT FALSE,
+  feature_suggestions BOOLEAN DEFAULT FALSE,
   domain_suggestions BOOLEAN DEFAULT FALSE,
   roast_analysis BOOLEAN DEFAULT FALSE,
   validation_checklist BOOLEAN DEFAULT FALSE,
@@ -245,6 +258,7 @@ ALTER TABLE public.market_research ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.competitor_intelligence ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.success_probability ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.feature_recommendations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.feature_suggestions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.domain_suggestions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.roast_analysis ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.validation_checklist ENABLE ROW LEVEL SECURITY;
@@ -263,6 +277,7 @@ DROP POLICY IF EXISTS "Service role full access market" ON public.market_researc
 DROP POLICY IF EXISTS "Service role full access competitor" ON public.competitor_intelligence;
 DROP POLICY IF EXISTS "Service role full access success" ON public.success_probability;
 DROP POLICY IF EXISTS "Service role full access features" ON public.feature_recommendations;
+DROP POLICY IF EXISTS "Service role full access feature suggestions" ON public.feature_suggestions;
 DROP POLICY IF EXISTS "Service role full access domain" ON public.domain_suggestions;
 DROP POLICY IF EXISTS "Service role full access roast" ON public.roast_analysis;
 DROP POLICY IF EXISTS "Service role full access checklist" ON public.validation_checklist;
@@ -280,6 +295,7 @@ CREATE POLICY "Service role full access market" ON public.market_research FOR AL
 CREATE POLICY "Service role full access competitor" ON public.competitor_intelligence FOR ALL USING (true);
 CREATE POLICY "Service role full access success" ON public.success_probability FOR ALL USING (true);
 CREATE POLICY "Service role full access features" ON public.feature_recommendations FOR ALL USING (true);
+CREATE POLICY "Service role full access feature suggestions" ON public.feature_suggestions FOR ALL USING (true);
 CREATE POLICY "Service role full access domain" ON public.domain_suggestions FOR ALL USING (true);
 CREATE POLICY "Service role full access roast" ON public.roast_analysis FOR ALL USING (true);
 CREATE POLICY "Service role full access checklist" ON public.validation_checklist FOR ALL USING (true);

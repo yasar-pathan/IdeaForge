@@ -31,6 +31,7 @@ export interface ModuleStatus {
   competitor_intelligence: boolean;
   success_probability: boolean;
   feature_recommendations: boolean;
+  feature_suggestions: boolean;
   domain_suggestions: boolean;
   roast_analysis: boolean;
   validation_checklist: boolean;
@@ -125,6 +126,23 @@ export interface FeatureRecommendations {
     tech_risks: string[];
     third_party_services: string[];
   };
+}
+
+export interface FeatureSuggestion {
+  name: string;
+  description: string;
+  impact: 'High' | 'Medium' | 'Low';
+  effort: 'High' | 'Medium' | 'Low';
+  why_now: string;
+}
+
+export interface FeatureSuggestions {
+  session_id: string;
+  must_have_features: FeatureSuggestion[];
+  differentiator_features: FeatureSuggestion[];
+  retention_features: FeatureSuggestion[];
+  monetization_features: FeatureSuggestion[];
+  recommended_next_3: string[];
 }
 
 export interface DomainName {
@@ -246,6 +264,7 @@ export interface FullAnalysis {
   competitor_intelligence?: CompetitorIntelligence;
   success_probability?: SuccessProbability;
   feature_recommendations?: FeatureRecommendations;
+  feature_suggestions?: FeatureSuggestions;
   domain_suggestions?: DomainSuggestions;
   roast_analysis?: RoastAnalysis;
   validation_checklist?: ValidationChecklist;

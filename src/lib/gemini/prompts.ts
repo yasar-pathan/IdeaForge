@@ -149,7 +149,67 @@ Return ONLY a valid JSON object with this exact structure:
   }
 }
 
-MVP: 5-7 features. V1: 4-6 features. V2: 3-5 features. Be specific and realistic.
+MVP: 8-12 features. V1: 6-10 features. V2: 5-8 features.
+Be specific and realistic. Prefer features that unblock user value (core workflows), reduce risk (instrumentation/analytics/monitoring), and improve monetization/retention.
+`,
+
+  featureSuggestions: (idea: string) => `
+You are a principal product strategist. Suggest high-impact features that can make this project significantly better.
+
+IDEA: ${idea}
+
+Return ONLY a valid JSON object with this exact structure:
+{
+  "must_have_features": [
+    {
+      "name": "Feature name",
+      "description": "What this feature adds and why it matters",
+      "impact": "One of: High | Medium | Low",
+      "effort": "One of: Low | Medium | High",
+      "why_now": "Why this should be built now"
+    }
+  ],
+  "differentiator_features": [
+    {
+      "name": "Feature name",
+      "description": "Unique edge this creates",
+      "impact": "One of: High | Medium | Low",
+      "effort": "One of: Low | Medium | High",
+      "why_now": "Why this should be prioritized"
+    }
+  ],
+  "retention_features": [
+    {
+      "name": "Feature name",
+      "description": "How this improves retention",
+      "impact": "One of: High | Medium | Low",
+      "effort": "One of: Low | Medium | High",
+      "why_now": "Why this helps recurring usage"
+    }
+  ],
+  "monetization_features": [
+    {
+      "name": "Feature name",
+      "description": "How this drives revenue",
+      "impact": "One of: High | Medium | Low",
+      "effort": "One of: Low | Medium | High",
+      "why_now": "Why this should be built for monetization"
+    }
+  ],
+  "recommended_next_3": [
+    "Feature 1",
+    "Feature 2",
+    "Feature 3"
+  ]
+}
+
+Generate exactly:
+- 8 must-have features
+- 6 differentiator features
+- 5 retention features
+- 5 monetization features
+
+Avoid generic advice. Suggestions must be specific to THIS idea.
 `,
 
   domainSuggestions: (idea: string) => `
@@ -327,7 +387,7 @@ Cover all major screens: onboarding, core features, secondary features, settings
 Mermaid rules (critical): use short node IDs (A, B, C1, …) and put human-readable text in square brackets only when it contains no ] or " characters; if a label needs brackets or quotes, use double-quoted strings for the label, e.g. A["Login / Sign up"]. Do not put raw JSON or markdown inside mermaid_code—only the diagram text.
 `,
 
-  pptSlides: (idea: string, analysis: any) => `
+  pptSlides: (idea: string, analysis: unknown) => `
 You are a pitch deck designer. Generate content for a 12-slide investor pitch deck.
 
 IDEA: ${idea}

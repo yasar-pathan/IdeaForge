@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Map } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -10,13 +10,10 @@ type Screen = { name?: string; purpose?: string; ui_elements?: string[]; connect
 
 export function UIFlowCard({ data }: { data: Record<string, unknown> | null }) {
   const screens = (data?.screens as Screen[]) ?? [];
-  const initialCode = String(data?.mermaid_code ?? 'flowchart TD\n    A[Start] --> B[End]');
-  const [code, setCode] = useState(initialCode);
+  const baseCode = String(data?.mermaid_code ?? 'flowchart TD\n    A[Start] --> B[End]');
+  const [code, setCode] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    setCode(String(data?.mermaid_code ?? 'flowchart TD\n    A[Start] --> B[End]'));
-  }, [data?.mermaid_code]);
+  const displayCode = code ?? baseCode;
 
   return (
     <section
@@ -38,7 +35,7 @@ export function UIFlowCard({ data }: { data: Record<string, unknown> | null }) {
         </Button>
       </div>
 
-      <MermaidDiagram code={code} />
+      <MermaidDiagram code={displayCode} />
 
       <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {screens.map((s, i) => (
@@ -54,7 +51,7 @@ export function UIFlowCard({ data }: { data: Record<string, unknown> | null }) {
 
       <Modal open={open} onOpenChange={setOpen} title="Edit Mermaid diagram">
         <textarea
-          value={code}
+          value={displayCode}
           onChange={(e) => setCode(e.target.value)}
           className="min-h-[200px] w-full rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-3 font-mono text-xs text-[var(--text-primary)]"
         />

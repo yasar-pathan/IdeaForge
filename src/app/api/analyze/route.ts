@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase, getSessionUserId } from '@/lib/supabase/server';
+import { updatePlatformStats } from '@/lib/updatePlatformStats';
 
 export const maxDuration = 60;
 export const runtime = 'nodejs';
@@ -15,9 +16,8 @@ function monthlyAnalysisCap(plan: string | null | undefined): number {
   if (process.env.IDEAFORGE_UNLIMITED_ANALYSES === 'true') {
     return 999_999;
   }
-  if (plan && plan !== 'free') {
-    return 999;
-  }
+  if (plan === 'pro') return 15;
+  if (plan === 'founder') return 999_999;
   const raw = process.env.IDEAFORGE_FREE_ANALYSIS_LIMIT?.trim();
   if (raw) {
     const n = parseInt(raw, 10);
@@ -53,11 +53,13 @@ export async function POST(req: NextRequest) {
 
     const sb = await createServerSupabase();
 
-    let { data: user, error: userSelectErr } = await sb
+    const { data: userData, error: userSelectErr } = await sb
       .from('users')
       .select('*')
       .eq('id', userId)
       .maybeSingle();
+
+    let user = userData;
 
     if (userSelectErr) {
       console.error('users select:', userSelectErr.message);
@@ -117,12 +119,18 @@ export async function POST(req: NextRequest) {
     }
 
     const limit = monthlyAnalysisCap(user.plan as string | null | undefined);
+    const used = user.analyses_used_this_month ?? 0;
+    const remaining = limit - used;
 
-    if ((user.analyses_used_this_month ?? 0) >= limit) {
+    if (used >= limit) {
       return NextResponse.json(
         {
           error: 'Monthly limit reached. Upgrade to Pro for unlimited analyses.',
           hint: 'Dev: IDEAFORGE_UNLIMITED_ANALYSES=true in .env.local',
+          remaining_analyses: 0,
+          limit,
+          used,
+          plan: user.plan ?? 'free',
         },
         { status: 429 }
       );
@@ -160,7 +168,9 @@ export async function POST(req: NextRequest) {
       console.error('users usage update:', usageErr.message);
     }
 
-    return NextResponse.json({ session_id: session.id, status: 'processing' });
+    await updatePlatformStats();
+
+    return NextResponse.json({ session_id: session.id, status: 'processing', remaining: remaining - 1 });
   } catch (error) {
     console.error('Analyze error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

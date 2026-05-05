@@ -20,9 +20,9 @@ export function Footer() {
               <p className="mb-3 font-medium text-[var(--text-primary)]">Product</p>
               <ul className="space-y-2 text-[var(--text-secondary)]">
                 <li>
-                  <a href="/#features" className="hover:text-[var(--text-primary)]">
+                  <Link href="/#features" className="hover:text-[var(--text-primary)]">
                     Features
-                  </a>
+                  </Link>
                 </li>
                 <li>
                   <Link href="/dashboard" className="hover:text-[var(--text-primary)]">

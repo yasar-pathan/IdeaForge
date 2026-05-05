@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
-import { motion, useMotionValue, useSpring, useMotionTemplate, Variants } from 'framer-motion';
+import { useEffect, useMemo, useState } from 'react';
+import { AnimatePresence, motion, useMotionTemplate, useMotionValue, useSpring } from 'framer-motion';
+import type { Variants } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Sparkles } from 'lucide-react';
@@ -31,7 +32,7 @@ export function Hero({
 
   const pointerGlow = useMotionTemplate`radial-gradient(1200px circle at ${springX}px ${springY}px, rgba(124, 110, 250, 0.08), transparent 40%)`;
 
-  const containerVariants: any = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
@@ -42,19 +43,65 @@ export function Hero({
     },
   };
 
-  const itemVariants: any = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 30, filter: 'blur(10px)' },
     show: {
       opacity: 1,
       y: 0,
       filter: 'blur(0px)',
-      transition: { type: 'spring', stiffness: 80, damping: 20 },
+      transition: { type: 'spring' as const, stiffness: 80, damping: 20 },
     },
   };
 
   const titleWords1 = 'Turn Your Idea Into'.split(' ');
   const titleWords2 = 'An Investor-Ready'.split(' ');
   const titleWords3 = 'Package'.split(' ');
+  const [slide, setSlide] = useState(0);
+  const [stats, setStats] = useState({ totalUsers: 0, totalAnalyses: 0, avgScore: 0 });
+
+  const slides = useMemo(
+    () => [
+      {
+        title: 'Success Score',
+        subtitle: 'Live analysis preview',
+        body: 'Overall score: 74/100\nStrong timing, clear monetization path, and high implementation feasibility.',
+        accent: 'from-emerald-400/35 to-indigo-500/20',
+      },
+      {
+        title: 'Pitch Speech',
+        subtitle: 'Live analysis preview',
+        body: 'Problem: SMEs waste hours in manual billing.\nSolution: AI-first invoicing + auto follow-ups + payment predictions.',
+        accent: 'from-violet-400/35 to-cyan-400/20',
+      },
+      {
+        title: 'Competitor Analysis',
+        subtitle: 'Live analysis preview',
+        body: 'Gap found: fast India-specific onboarding and GST-first UX is still underserved by top incumbents.',
+        accent: 'from-amber-400/35 to-fuchsia-500/20',
+      },
+    ],
+    []
+  );
+
+  useEffect(() => {
+    const t = setInterval(() => setSlide((s) => (s + 1) % slides.length), 4000);
+    return () => clearInterval(t);
+  }, [slides.length]);
+
+  useEffect(() => {
+    fetch('/api/stats')
+      .then((r) => r.json())
+      .then((d) =>
+        setStats({
+          totalUsers: Number(d.totalUsers ?? 0),
+          totalAnalyses: Number(d.totalAnalyses ?? 0),
+          avgScore: Number(d.avgScore ?? 0),
+        })
+      )
+      .catch(() => {
+        // ignore, keep zero defaults
+      });
+  }, []);
 
   return (
     <section className="relative min-h-[calc(100vh-4rem)] overflow-hidden pt-24 pb-20 bg-[#0A0A0B]">
@@ -155,74 +202,63 @@ export function Hero({
             </motion.div>
           </motion.div>
 
+          <motion.div variants={itemVariants} className="mt-8 flex items-center justify-center gap-8 text-sm text-white/50">
+            <span>
+              <strong className="text-white">{stats.totalUsers}+</strong> founders
+            </span>
+            <span className="h-4 w-px bg-white/20" />
+            <span>
+              <strong className="text-white">{stats.totalAnalyses}+</strong> ideas analyzed
+            </span>
+            <span className="h-4 w-px bg-white/20" />
+            <span>
+              Avg score: <strong className="text-white">{stats.avgScore}</strong>
+            </span>
+          </motion.div>
+
           <motion.p variants={itemVariants} className="mt-8 text-sm font-medium text-white/40 tracking-wide uppercase">
             Free to start · No credit card · ~60–90s analysis
           </motion.p>
 
-          {/* 3. Animated Dashboard Skeleton */}
+          {/* 3. Real preview carousel */}
           <motion.div
             variants={itemVariants}
             className="relative mx-auto mt-20 md:mt-28 max-w-4xl rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#111118]/80 to-[#0A0A0B]/90 p-1 shadow-[0_0_80px_rgba(124,110,250,0.2)] backdrop-blur-2xl"
           >
             <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
-            
-            <div className="rounded-[1.8rem] bg-[#0A0A0B] p-6 lg:p-8 relative overflow-hidden">
-              {/* Scanline effect rendering over UI */}
-              <motion.div 
-                initial={{ top: '-100%' }}
-                animate={{ top: '200%' }}
-                transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
-                className="absolute left-0 right-0 h-32 bg-gradient-to-b from-transparent via-[#7C6EFA]/10 to-transparent z-20 pointer-events-none"
-              />
 
-              <div className="flex items-center gap-3 mb-8">
-                <div className="flex gap-1.5 border border-white/10 p-1.5 rounded-lg">
-                   <div className="w-3 h-3 rounded-full bg-red-400/80" />
-                   <div className="w-3 h-3 rounded-full bg-amber-400/80" />
-                   <div className="w-3 h-3 rounded-full bg-emerald-400/80" />
-                </div>
-                <div className="h-4 w-40 rounded-full bg-white/5" />
-              </div>
-
-              <div className="grid grid-cols-12 gap-6 text-left">
-                {/* Sidebar */}
-                <div className="col-span-3 space-y-4 hidden md:block border-r border-white/5 pr-6">
-                  <div className="flex items-center gap-3"><div className="h-6 w-6 rounded bg-[#7C6EFA]/30"/><div className="h-4 w-24 rounded bg-white/10" /></div>
-                  <div className="flex items-center gap-3 opacity-50"><div className="h-6 w-6 rounded bg-white/5"/><div className="h-4 w-20 rounded bg-white/5" /></div>
-                  <div className="flex items-center gap-3 opacity-50"><div className="h-6 w-6 rounded bg-white/5"/><div className="h-4 w-16 rounded bg-white/5" /></div>
-                </div>
-
-                {/* Main Content Area */}
-                <div className="col-span-12 md:col-span-9 space-y-6">
-                  <div className="space-y-3">
-                    {/* Animated Lines representing text generation */}
-                    <motion.div initial={{ width: "0%" }} animate={{ width: "80%" }} transition={{ duration: 1.5, delay: 1, ease: "easeOut" }} className="h-6 md:h-8 rounded-lg bg-gradient-to-r from-white/10 to-transparent" />
-                    <motion.div initial={{ width: "0%" }} animate={{ width: "40%" }} transition={{ duration: 1.5, delay: 1.2, ease: "easeOut" }} className="h-6 md:h-8 rounded-lg bg-white/5" />
+            <div className="relative overflow-hidden rounded-[1.8rem] bg-[#0A0A0B] p-6 lg:p-8">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={slide}
+                  initial={{ opacity: 0, x: 40 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -40 }}
+                  transition={{ duration: 0.35 }}
+                  className="text-left"
+                >
+                  <div className="mb-5 flex items-center justify-between">
+                    <p className="text-xs uppercase tracking-wider text-white/50">{slides[slide].subtitle}</p>
+                    <div className="flex gap-1.5">
+                      {slides.map((_, i) => (
+                        <span
+                          key={i}
+                          className={`h-1.5 w-6 rounded-full ${i === slide ? 'bg-white/80' : 'bg-white/20'}`}
+                        />
+                      ))}
+                    </div>
                   </div>
-
-                  <div className="grid grid-cols-3 gap-4 pt-4">
-                    {[0, 1, 2].map((i) => (
-                      <motion.div 
-                        key={i}
-                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        transition={{ delay: 1.8 + i * 0.2, type: 'spring' }}
-                        className="h-24 md:h-32 rounded-2xl bg-white/5 ring-1 ring-white/10 flex flex-col justify-end p-4 relative overflow-hidden"
-                      >
-                         {/* Card content skeleton */}
-                         <div className="h-2 w-1/2 rounded-full bg-white/10 mb-2" />
-                         <div className="h-2 w-full rounded-full bg-white/5" />
-                         <div className="absolute top-4 right-4 w-6 h-6 rounded-full bg-white/5" />
-                      </motion.div>
-                    ))}
+                  <div className={`rounded-2xl border border-white/10 bg-gradient-to-br ${slides[slide].accent} p-6`}>
+                    <h3 className="text-2xl font-bold text-white">{slides[slide].title}</h3>
+                    <p className="mt-3 whitespace-pre-line text-sm leading-6 text-white/85">{slides[slide].body}</p>
                   </div>
-                </div>
-              </div>
+                </motion.div>
+              </AnimatePresence>
             </div>
-            
+
             <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 rounded-full border border-white/10 bg-[#111118] px-6 py-2 shadow-xl backdrop-blur-xl">
               <p className="text-sm font-medium text-white/50 tracking-wider">
-                LIVE DASHBOARD PREVIEW
+                LIVE ANALYSIS PREVIEW
               </p>
             </div>
           </motion.div>

@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { createBrowserSupabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/Button';
-import { Menu, X, Hexagon, LayoutDashboard, LogOut } from 'lucide-react';
+import { Menu, X, Hexagon, LayoutDashboard, LogOut, User as UserIcon } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import type { User } from '@supabase/supabase-js';
 import { cn } from '@/lib/utils';
@@ -88,6 +88,12 @@ export function Navbar() {
                   Dashboard
                 </Button>
               </Link>
+              <Link href="/profile">
+                <Button variant="ghost" size="sm">
+                  <UserIcon className="h-4 w-4" />
+                  Profile
+                </Button>
+              </Link>
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger asChild>
                   <button
@@ -102,6 +108,13 @@ export function Navbar() {
                     className="z-[150] min-w-[180px] rounded-xl border border-[var(--border-bright)] bg-[var(--bg-elevated)] p-1 shadow-xl"
                     sideOffset={6}
                   >
+                    <DropdownMenu.Item
+                      className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-[var(--text-secondary)] outline-none hover:bg-[var(--bg-card)] hover:text-[var(--text-primary)]"
+                      onSelect={() => router.push('/profile')}
+                    >
+                      <UserIcon className="h-4 w-4" />
+                      Profile
+                    </DropdownMenu.Item>
                     <DropdownMenu.Item
                       className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-[var(--text-secondary)] outline-none hover:bg-[var(--bg-card)] hover:text-[var(--text-primary)]"
                       onSelect={() => signOut()}
@@ -155,6 +168,11 @@ export function Navbar() {
                 <Link href="/dashboard" onClick={() => setOpen(false)}>
                   <Button variant="secondary" className="w-full">
                     Dashboard
+                  </Button>
+                </Link>
+                <Link href="/profile" onClick={() => setOpen(false)}>
+                  <Button variant="ghost" className="w-full">
+                    Profile
                   </Button>
                 </Link>
                 <Button variant="ghost" className="w-full" onClick={() => signOut()}>

@@ -180,7 +180,7 @@ export function ScrollNarrative() {
                  All in <span className="bg-gradient-to-r from-[#A855F7] to-[#7C6EFA] text-transparent bg-clip-text">Under 2 Minutes.</span>
                </h2>
                <p className="text-lg md:text-xl text-white/50 mb-12 max-w-lg mx-auto font-light">
-                 The complete AI-powered architect for your next big thing. Let's make it real.
+                 The complete AI-powered architect for your next big thing. Let&apos;s make it real.
                </p>
             </motion.div>
           </div>

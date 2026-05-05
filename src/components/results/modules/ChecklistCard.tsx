@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { ListChecks } from 'lucide-react';
 import { Progress } from '@/components/ui/Progress';
@@ -13,19 +13,20 @@ type Item = { task?: string; success_signal?: string; time_estimate?: string; ph
 export function ChecklistCard({ data, sessionId }: { data: Record<string, unknown> | null; sessionId: string }) {
   const items = (data?.checklist as Item[]) ?? [];
   const storageKey = `ideaforge-checklist-${sessionId}`;
-  const [done, setDone] = useState<Set<number>>(new Set());
-  const [mounted, setMounted] = useState(false);
-  const [confetti, setConfetti] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
+  const [done, setDone] = useState<Set<number>>(() => {
+    if (typeof window === 'undefined') return new Set<number>();
     try {
       const raw = localStorage.getItem(storageKey);
-      if (raw) setDone(new Set(JSON.parse(raw) as number[]));
+      if (!raw) return new Set<number>();
+      const parsed = JSON.parse(raw) as unknown;
+      if (!Array.isArray(parsed)) return new Set<number>();
+      return new Set(parsed.filter((n): n is number => typeof n === 'number'));
     } catch {
-      /* ignore */
+      return new Set<number>();
     }
-  }, [storageKey]);
+  });
+  const [confetti, setConfetti] = useState(false);
+  const confettiTimerRef = useRef<number | null>(null);
 
   const toggle = (i: number) => {
     setDone((prev) => {
@@ -37,6 +38,13 @@ export function ChecklistCard({ data, sessionId }: { data: Record<string, unknow
       } catch {
         /* ignore */
       }
+
+      const total = items.length;
+      if (total > 0 && next.size === total) {
+        setConfetti(true);
+        if (confettiTimerRef.current) window.clearTimeout(confettiTimerRef.current);
+        confettiTimerRef.current = window.setTimeout(() => setConfetti(false), 4500);
+      }
       return next;
     });
   };
@@ -44,25 +52,6 @@ export function ChecklistCard({ data, sessionId }: { data: Record<string, unknow
   const total = items.length;
   const count = done.size;
   const pct = total ? (count / total) * 100 : 0;
-
-  useEffect(() => {
-    if (total && count === total) {
-      setConfetti(true);
-      const t = setTimeout(() => setConfetti(false), 4500);
-      return () => clearTimeout(t);
-    }
-  }, [count, total]);
-
-  if (!mounted) {
-    return (
-      <section
-        id="checklist"
-        className="module-card mb-6 rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--bg-card)] p-6"
-      >
-        <div className="h-40 skeleton" />
-      </section>
-    );
-  }
 
   return (
     <section

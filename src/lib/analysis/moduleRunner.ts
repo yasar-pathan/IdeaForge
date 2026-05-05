@@ -112,6 +112,17 @@ export async function runSingleModule(sessionId: string, rawIdea: string, module
       await setModuleFlag(sessionId, 'feature_recommendations');
       break;
     }
+    case 'feature_suggestions': {
+      const data = await generateWithFlash(PROMPTS.featureSuggestions(rawIdea));
+      {
+        const { error } = await supabaseAdmin
+          .from('feature_suggestions')
+          .upsert({ session_id: sessionId, ...data }, { onConflict: 'session_id' });
+        if (error) throw error;
+      }
+      await setModuleFlag(sessionId, 'feature_suggestions');
+      break;
+    }
     case 'domain_suggestions': {
       const data = await generateWithFlash(PROMPTS.domainSuggestions(rawIdea));
       {

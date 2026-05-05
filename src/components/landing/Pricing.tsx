@@ -1,47 +1,57 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Check } from 'lucide-react';
+import { UpgradeModal } from '@/components/ui/UpgradeModal';
 
 const tiers = [
   {
     name: 'Free',
-    price: '$0',
+    price: '₹0',
     desc: 'Try the full pipeline',
-    features: ['3 analyses / month', 'All modules', 'PPT download', 'Dashboard history'],
+    features: ['3 analyses / month', 'All 12 modules', 'PPT download (branded)', 'Dashboard history'],
     cta: 'Start free',
     href: '/sign-up',
     highlight: false,
   },
   {
     name: 'Pro',
-    price: '$9',
+    price: '₹499',
     period: '/mo',
     desc: 'For serious builders',
-    features: ['Unlimited analyses', 'Priority generation', 'Everything in Free'],
-    cta: 'Upgrade (soon)',
-    href: '/sign-up',
+    features: ['15 analyses / month', 'Priority Gemini Pro', 'White-label exports', 'Iteration tracking'],
+    cta: 'Upgrade to Pro',
+    action: 'checkout_pro',
     highlight: true,
   },
   {
-    name: 'Team',
-    price: '$29',
+    name: 'Founder',
+    price: '₹1,499',
     period: '/mo',
-    desc: 'For small teams',
-    features: ['Shared workspace (soon)', 'Unlimited analyses', 'Export & share'],
-    cta: 'Contact (soon)',
-    href: '/sign-up',
+    desc: 'For co-founding teams',
+    features: ['Unlimited analyses', 'Team workspace (5 seats)', 'Investor one-pager', 'Everything in Pro'],
+    cta: 'Start Founder plan',
+    action: 'checkout_founder',
     highlight: false,
   },
 ];
 
 export function Pricing() {
+  const [upgradeModal, setUpgradeModal] = useState<{ open: boolean; plan: 'pro' | 'founder' }>({ open: false, plan: 'pro' });
+
+  const handleTierClick = (action?: string) => {
+    if (action === 'checkout_pro') setUpgradeModal({ open: true, plan: 'pro' });
+    if (action === 'checkout_founder') setUpgradeModal({ open: true, plan: 'founder' });
+  };
+
   return (
     <section id="pricing" className="scroll-mt-24 py-24">
+      <UpgradeModal open={upgradeModal.open} onOpenChange={(v) => setUpgradeModal(prev => ({ ...prev, open: v }))} defaultPlan={upgradeModal.plan} />
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <h2 className="font-display text-center text-3xl font-bold text-[var(--text-primary)] md:text-4xl">
           Simple pricing
@@ -87,11 +97,17 @@ export function Pricing() {
                     </li>
                   ))}
                 </ul>
-                <Link href={t.href} className="mt-8">
-                  <Button variant={t.highlight ? 'primary' : 'secondary'} className="w-full">
+                {t.action ? (
+                  <Button variant={t.highlight ? 'primary' : 'secondary'} className="w-full mt-8" onClick={() => handleTierClick(t.action)}>
                     {t.cta}
                   </Button>
-                </Link>
+                ) : (
+                  <Link href={t.href || '/'} className="mt-8">
+                    <Button variant={t.highlight ? 'primary' : 'secondary'} className="w-full">
+                      {t.cta}
+                    </Button>
+                  </Link>
+                )}
               </Card>
             </motion.div>
           ))}

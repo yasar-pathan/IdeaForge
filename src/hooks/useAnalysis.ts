@@ -33,8 +33,28 @@ export function useAnalysis() {
           );
         }
         if (res.status === 401) {
+          localStorage.setItem('ideaforge_pending_idea', idea);
           toast.error('Sign in to analyze your idea');
-          router.push(`/sign-in?next=${encodeURIComponent('/')}`);
+          router.push(`/sign-in?next=${encodeURIComponent('/?forge=1')}`);
+          return null;
+        }
+        if (res.status === 429) {
+          let plan: 'pro' | 'founder' = 'pro';
+          try {
+            const parsed: unknown = raw ? JSON.parse(raw) : null;
+            if (
+              parsed &&
+              typeof parsed === 'object' &&
+              'plan' in parsed &&
+              (parsed as { plan?: unknown }).plan !== 'free'
+            ) {
+              plan = 'pro';
+            }
+          } catch {
+            // ignore
+          }
+          window.dispatchEvent(new CustomEvent('ideaforge:open-upgrade', { detail: { plan } }));
+          toast.error('Monthly limit reached. Upgrade to continue.');
           return null;
         }
         if (!res.ok) {

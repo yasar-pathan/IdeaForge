@@ -33,7 +33,6 @@ export function AnalysisProgress({ sessionId }: { sessionId: string }) {
 
   useEffect(() => {
     if (status !== 'processing' || progress > 0) {
-      setSlowHint(false);
       return;
     }
     const t = setTimeout(() => setSlowHint(true), 45_000);
@@ -74,7 +73,7 @@ export function AnalysisProgress({ sessionId }: { sessionId: string }) {
         Full run usually takes a few minutes (modules run in sequence to avoid API rate limits).
       </p>
 
-      {slowHint ? (
+      {slowHint && status === 'processing' && progress === 0 ? (
         <p className="mt-4 max-w-md text-center text-xs text-[var(--warning)]">
           Still at 0%? Confirm{' '}
           <code className="rounded bg-[var(--bg-elevated)] px-1 font-mono text-[10px]">GOOGLE_GENERATIVE_AI_API_KEY</code>{' '}

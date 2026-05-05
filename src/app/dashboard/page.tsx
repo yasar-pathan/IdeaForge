@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { MoreVertical, Pencil, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { ArrowUpRight, BarChart3, MoreVertical, Pencil, Plus, Sparkles, Trash2 } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
+import { UsageBar } from '@/components/ui/UsageBar';
 
 type Row = {
   id: string;
@@ -35,6 +36,7 @@ export default function DashboardPage() {
   const [sessions, setSessions] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [usage, setUsage] = useState<{ plan: string; used: number; limit: number } | null>(null);
   const [editing, setEditing] = useState<Row | null>(null);
   const [deleting, setDeleting] = useState<Row | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -47,7 +49,10 @@ export default function DashboardPage() {
       .then((r) => r.json())
       .then((d) => {
         if (d.error) setError(d.error);
-        else setSessions(d.sessions || []);
+        else {
+          setSessions(d.sessions || []);
+          if (d.usage) setUsage(d.usage);
+        }
       })
       .catch(() => setError('Failed to load'))
       .finally(() => setLoading(false));
@@ -79,7 +84,8 @@ export default function DashboardPage() {
       .filter((n): n is number => n != null);
     const avg = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
     const hi = scores.length ? Math.max(...scores) : 0;
-    return { total, thisMonth, avg, hi };
+    const processing = sessions.filter((s) => s.status === 'processing').length;
+    return { total, thisMonth, avg, hi, processing };
   }, [sessions]);
 
   async function saveRename() {
@@ -139,17 +145,42 @@ export default function DashboardPage() {
 
   return (
     <div className="page-transition mx-auto max-w-7xl px-4 pb-24 pt-24">
-      <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="font-display text-3xl font-bold text-[var(--text-primary)]">Your ideas</h1>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">Pick up where you left off</p>
+      <div className="mb-8 overflow-hidden rounded-3xl border border-[var(--border-bright)] bg-[radial-gradient(circle_at_top_right,rgba(124,110,250,0.2),transparent_45%),linear-gradient(180deg,rgba(17,17,30,0.9),rgba(10,10,20,0.9))] p-6 sm:p-8">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[var(--border-bright)] bg-[var(--bg-elevated)] px-3 py-1 text-xs text-[var(--text-secondary)]">
+              <BarChart3 className="h-3.5 w-3.5 text-[var(--accent-primary)]" />
+              Workspace overview
+            </div>
+            <h1 className="font-display text-3xl font-bold text-[var(--text-primary)] sm:text-4xl">
+              Your ideas dashboard
+            </h1>
+            <p className="mt-2 text-sm text-[var(--text-secondary)]">
+              {stats.processing > 0
+                ? `${stats.processing} analysis${stats.processing > 1 ? 'es' : ''} in progress. Keep shipping.`
+                : 'Everything is up to date. Create your next breakthrough idea.'}
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            {usage?.plan === 'free' ? <UsageBar used={usage.used} limit={usage.limit} /> : null}
+            {usage?.plan === 'pro' ? (
+              <Badge variant="accent" className="h-10 px-3 text-[10px] tracking-wider">
+                PRO PLAN
+              </Badge>
+            ) : null}
+            {usage?.plan === 'founder' ? (
+              <Badge variant="success" className="h-10 px-3 text-[10px] tracking-wider">
+                FOUNDER PLAN
+              </Badge>
+            ) : null}
+            <Link href="/?forge=1">
+              <Button size="lg" className="w-full sm:w-auto">
+                <Plus className="h-5 w-5" />
+                New analysis
+              </Button>
+            </Link>
+          </div>
         </div>
-        <Link href="/?forge=1">
-          <Button size="lg" className="w-full sm:w-auto">
-            <Plus className="h-5 w-5" />
-            New analysis
-          </Button>
-        </Link>
       </div>
 
       <div className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -159,9 +190,13 @@ export default function DashboardPage() {
           { label: 'Average score', v: stats.avg },
           { label: 'Highest score', v: stats.hi },
         ].map((s) => (
-          <Card key={s.label} className="p-5">
-            <p className="text-xs text-[var(--text-muted)]">{s.label}</p>
-            <p className="mt-2 font-mono text-2xl font-bold text-[var(--text-primary)]">{s.v}</p>
+          <Card
+            key={s.label}
+            className="group rounded-2xl border-[var(--border-bright)] bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))] p-5 transition hover:translate-y-[-2px] hover:border-[var(--accent-primary)]/40"
+          >
+            <p className="text-xs uppercase tracking-wide text-[var(--text-muted)]">{s.label}</p>
+            <p className="mt-2 font-mono text-3xl font-bold text-[var(--text-primary)]">{s.v}</p>
+            <div className="mt-3 h-1 w-16 rounded-full bg-[var(--accent-primary)]/30 transition group-hover:w-24" />
           </Card>
         ))}
       </div>
@@ -190,7 +225,7 @@ export default function DashboardPage() {
           </Link>
         </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {sessions.map((s, i) => {
             const href = s.status === 'complete' ? `/results/${s.id}` : `/workspace/${s.id}`;
             return (
@@ -200,7 +235,7 @@ export default function DashboardPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
               >
-                <Card className="group relative flex h-full flex-col p-5">
+                <Card className="group relative flex h-full flex-col rounded-2xl border-[var(--border-bright)] bg-[linear-gradient(180deg,rgba(255,255,255,0.015),rgba(255,255,255,0))] p-5 transition hover:translate-y-[-2px] hover:border-[var(--accent-primary)]/50">
                   <div className="mb-3 flex items-start gap-2">
                     <Link href={href} className="min-w-0 flex-1">
                       <h2 className="line-clamp-2 font-display font-bold text-[var(--text-primary)] transition hover:text-[var(--accent-primary)]">
@@ -266,9 +301,10 @@ export default function DashboardPage() {
                   <p className="text-xs text-[var(--text-muted)]">{relTime(s.created_at)}</p>
                   <Link
                     href={href}
-                    className="mt-4 text-sm font-medium text-[var(--accent-primary)] opacity-0 transition group-hover:opacity-100"
+                    className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[var(--accent-primary)] opacity-0 transition group-hover:opacity-100"
                   >
-                    {s.status === 'complete' ? 'View results →' : 'Continue →'}
+                    {s.status === 'complete' ? 'View results' : 'Continue'}
+                    <ArrowUpRight className="h-3.5 w-3.5" />
                   </Link>
                 </Card>
               </motion.div>

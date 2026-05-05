@@ -46,7 +46,7 @@ export async function GET(
           .map(([key]) => key)
       : [];
 
-    const totalModules = 13;
+    const totalModules = 14;
     const progress = Math.round((completedModules.length / totalModules) * 100);
 
     return NextResponse.json({
