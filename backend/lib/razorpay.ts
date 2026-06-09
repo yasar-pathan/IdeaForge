@@ -1,8 +1,21 @@
 import Razorpay from 'razorpay';
 
-export const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
+const getRazorpayClient = () => {
+  return new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID || 'dummy_key',
+    key_secret: process.env.RAZORPAY_KEY_SECRET || 'dummy_secret',
+  });
+};
+
+let _razorpay: ReturnType<typeof getRazorpayClient> | null = null;
+
+export const razorpay = new Proxy({} as ReturnType<typeof getRazorpayClient>, {
+  get(_target, prop, receiver) {
+    if (!_razorpay) {
+      _razorpay = getRazorpayClient();
+    }
+    return Reflect.get(_razorpay, prop, receiver);
+  },
 });
 
 export const PLANS = {

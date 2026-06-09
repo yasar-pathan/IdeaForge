@@ -9,7 +9,11 @@
     "noEmit": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "types": ["node"]
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@/backend/*": ["./*"]
+    }
   },
   "include": ["**/*.ts"],
   "exclude": ["node_modules"]

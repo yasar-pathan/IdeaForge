@@ -45,9 +45,22 @@ export async function getSessionUserId(): Promise<string | null> {
 }
 
 /** Service role — bypasses RLS (API routes that already checked auth). */
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
+const getAdminClient = () => {
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+};
+
+let _supabaseAdmin: ReturnType<typeof getAdminClient> | null = null;
+
+export const supabaseAdmin = new Proxy({} as ReturnType<typeof getAdminClient>, {
+  get(_target, prop, receiver) {
+    if (!_supabaseAdmin) {
+      _supabaseAdmin = getAdminClient();
+    }
+    return Reflect.get(_supabaseAdmin, prop, receiver);
   },
 });
