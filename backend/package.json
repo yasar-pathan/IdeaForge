@@ -1,5 +1,8 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "@types/node": "^25.9.2"
+  }
 }
