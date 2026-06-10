@@ -19,6 +19,9 @@ applications:
             - echo "NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL" >> .env.production
             - echo "RAZORPAY_KEY_ID=$RAZORPAY_KEY_ID" >> .env.production
             - echo "RAZORPAY_KEY_SECRET=$RAZORPAY_KEY_SECRET" >> .env.production
+            - echo "NEXT_PUBLIC_RAZORPAY_KEY_ID=$NEXT_PUBLIC_RAZORPAY_KEY_ID" >> .env.production
+            - echo "NEXT_PUBLIC_RAZORPAY_PLAN_PRO=$NEXT_PUBLIC_RAZORPAY_PLAN_PRO" >> .env.production
+            - echo "NEXT_PUBLIC_RAZORPAY_PLAN_FOUNDER=$NEXT_PUBLIC_RAZORPAY_PLAN_FOUNDER" >> .env.production
             - npx next build
       artifacts:
         baseDirectory: .next
