@@ -13,32 +13,30 @@ export async function POST(req: NextRequest) {
     }
 
     const sb = await createServerSupabase();
+    const { data: { user: authUser } } = await sb.auth.getUser();
+    if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     let { data: user } = await sb.from('users').select('*').eq('id', userId).maybeSingle();
     
     if (!user) {
       // Auto-sync/recreate the user from Supabase Auth in case the database trigger was skipped
-      const { data: { user: authUser } } = await sb.auth.getUser();
-      if (authUser) {
-        const name = authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || '';
-        const { data: newUser, error: insertError } = await supabaseAdmin
-          .from('users')
-          .upsert({
-            id: userId,
-            email: authUser.email,
-            name: name,
-            plan: 'free',
-            updated_at: new Date().toISOString(),
-          })
-          .select()
-          .single();
-        if (insertError) {
-          console.error('Auto-creation of user failed in create-subscription:', insertError);
-          return NextResponse.json({ error: 'User not found' }, { status: 404 });
-        }
-        user = newUser;
-      } else {
+      const name = authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || '';
+      const { data: newUser, error: insertError } = await supabaseAdmin
+        .from('users')
+        .upsert({
+          id: userId,
+          email: authUser.email,
+          name: name,
+          plan: 'free',
+          updated_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+      if (insertError) {
+        console.error('Auto-creation of user failed in create-subscription:', insertError);
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
       }
+      user = newUser;
     }
 
     const currentPlan = String(user.plan ?? 'free');
@@ -81,7 +79,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to create subscription' }, { status: 500 });
     }
 
-    return NextResponse.json({ subscriptionId });
+    const prefill = {
+      name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || user.name || '',
+      email: authUser.email || user.email || '',
+      phone: authUser.user_metadata?.phone || '',
+    };
+
+    return NextResponse.json({ subscriptionId, prefill });
   } catch (err: unknown) {
     console.error('Subscription error:', err);
     const message = err instanceof Error ? err.message : 'Unknown error';

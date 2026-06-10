@@ -13,9 +13,10 @@ export default function SignUpPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
+ 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -24,14 +25,14 @@ export default function SignUpPage() {
       const reg = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), password, name: name.trim() }),
+        body: JSON.stringify({ email: email.trim(), password, name: name.trim(), phone: phone.trim() }),
       });
       const regJson = await reg.json();
       if (!reg.ok) {
         setError(regJson.error || 'Could not create account');
         return;
       }
-
+ 
       const sb = createBrowserSupabase();
       const { error: signErr } = await sb.auth.signInWithPassword({ email: email.trim(), password });
       if (signErr) {
@@ -53,7 +54,7 @@ export default function SignUpPage() {
       setLoading(false);
     }
   }
-
+ 
   return (
     <div className="hero-glow relative z-[1] flex min-h-screen flex-col items-center justify-center bg-[var(--bg-primary)] px-6 py-24">
       <Card className="w-full max-w-md p-8">
@@ -87,6 +88,21 @@ export default function SignUpPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@company.com"
+            />
+          </div>
+          <div>
+            <label htmlFor="phone" className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">
+              Phone Number
+            </label>
+            <Input
+              as="input"
+              id="phone"
+              type="tel"
+              autoComplete="tel"
+              required
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+91 99999 99999"
             />
           </div>
           <div>

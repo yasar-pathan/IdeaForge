@@ -41,6 +41,11 @@ export function useBilling() {
         subscription_id: data.subscriptionId,
         name: 'IdeaForge',
         description: `Upgrade to ${planId.toUpperCase()}`,
+        prefill: {
+          name: data.prefill?.name || '',
+          email: data.prefill?.email || '',
+          contact: data.prefill?.phone || '',
+        },
         handler: async function (response: RazorpayCheckoutSuccess) {
           const verifyRes = await fetch('/api/billing/verify', {
             method: 'POST',

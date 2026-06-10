@@ -8,12 +8,16 @@ export async function POST(req: NextRequest) {
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
     const password = typeof body.password === 'string' ? body.password : '';
     const name = typeof body.name === 'string' ? body.name.trim() : '';
+    const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: 'Valid email required' }, { status: 400 });
     }
     if (password.length < 6) {
       return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 });
+    }
+    if (!phone || phone.length < 10) {
+      return NextResponse.json({ error: 'Valid phone number is required (at least 10 digits)' }, { status: 400 });
     }
 
     const { error } = await supabaseAdmin.auth.admin.createUser({
@@ -23,6 +27,7 @@ export async function POST(req: NextRequest) {
       user_metadata: {
         full_name: name || undefined,
         name: name || undefined,
+        phone: phone || undefined,
       },
     });
 
