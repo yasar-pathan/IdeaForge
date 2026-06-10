@@ -40,6 +40,10 @@ export function Navbar() {
     return () => subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    fetch('/api/traffic/ping', { method: 'POST' }).catch(() => {});
+  }, [pathname]);
+
   const hideOnMinimal =
     pathname?.startsWith('/sign-in') || pathname?.startsWith('/sign-up');
 
@@ -82,12 +86,21 @@ export function Navbar() {
         <div className="hidden items-center gap-3 md:flex">
           {user ? (
             <>
-              <Link href="/dashboard">
-                <Button variant="ghost" size="sm">
-                  <LayoutDashboard className="h-4 w-4" />
-                  Dashboard
-                </Button>
-              </Link>
+              {user.email === 'admin@ideaforge.com' ? (
+                <Link href="/admin">
+                  <Button variant="ghost" size="sm" className="text-[var(--accent-primary)] font-medium">
+                    <LayoutDashboard className="h-4 w-4" />
+                    Admin Panel
+                  </Button>
+                </Link>
+              ) : (
+                <Link href="/dashboard">
+                  <Button variant="ghost" size="sm">
+                    <LayoutDashboard className="h-4 w-4" />
+                    Dashboard
+                  </Button>
+                </Link>
+              )}
               <Link href="/profile">
                 <Button variant="ghost" size="sm">
                   <UserIcon className="h-4 w-4" />
@@ -108,6 +121,15 @@ export function Navbar() {
                     className="z-[150] min-w-[180px] rounded-xl border border-[var(--border-bright)] bg-[var(--bg-elevated)] p-1 shadow-xl"
                     sideOffset={6}
                   >
+                    {user.email === 'admin@ideaforge.com' ? (
+                      <DropdownMenu.Item
+                        className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-[var(--accent-primary)] outline-none hover:bg-[var(--bg-card)] hover:text-[var(--accent-primary)] font-medium"
+                        onSelect={() => router.push('/admin')}
+                      >
+                        <LayoutDashboard className="h-4 w-4" />
+                        Admin Panel
+                      </DropdownMenu.Item>
+                    ) : null}
                     <DropdownMenu.Item
                       className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-[var(--text-secondary)] outline-none hover:bg-[var(--bg-card)] hover:text-[var(--text-primary)]"
                       onSelect={() => router.push('/profile')}
@@ -165,11 +187,19 @@ export function Navbar() {
           <div className="mt-4 flex flex-col gap-2">
             {user ? (
               <>
-                <Link href="/dashboard" onClick={() => setOpen(false)}>
-                  <Button variant="secondary" className="w-full">
-                    Dashboard
-                  </Button>
-                </Link>
+                {user.email === 'admin@ideaforge.com' ? (
+                  <Link href="/admin" onClick={() => setOpen(false)}>
+                    <Button variant="secondary" className="w-full text-[var(--accent-primary)] border-[var(--accent-primary)]/20">
+                      Admin Panel
+                    </Button>
+                  </Link>
+                ) : (
+                  <Link href="/dashboard" onClick={() => setOpen(false)}>
+                    <Button variant="secondary" className="w-full">
+                      Dashboard
+                    </Button>
+                  </Link>
+                )}
                 <Link href="/profile" onClick={() => setOpen(false)}>
                   <Button variant="ghost" className="w-full">
                     Profile

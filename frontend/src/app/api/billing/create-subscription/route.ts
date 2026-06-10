@@ -54,13 +54,25 @@ export async function POST(req: NextRequest) {
     }
 
     let customerId = user.razorpay_customer_id;
+    
+    // Auto-heal check: If customer ID exists, verify it belongs to the current Razorpay account (Test vs Live)
+    if (customerId) {
+      try {
+        await razorpay.customers.fetch(customerId);
+      } catch (err) {
+        console.warn(`Stored customer ID ${customerId} not found in current Razorpay account. Recreating...`);
+        customerId = null;
+      }
+    }
+
     if (!customerId) {
       const customer = await razorpay.customers.create({
         email: user.email,
         name: user.name || '',
       });
       customerId = customer.id;
-      await sb.from('users').update({ razorpay_customer_id: customerId }).eq('id', userId);
+      // Save the new customer ID in the profile using supabaseAdmin to bypass RLS
+      await supabaseAdmin.from('users').update({ razorpay_customer_id: customerId }).eq('id', userId);
     }
 
     type CreateSubscriptionInput = Parameters<typeof razorpay.subscriptions.create>[0];

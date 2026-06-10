@@ -22,14 +22,29 @@ function SignInForm() {
     setError(null);
     setLoading(true);
     try {
+      const normalizedEmail = email.trim().toLowerCase();
+      const isAdmin = normalizedEmail === 'admin@ideaforge.com';
+
+      if (isAdmin) {
+        const setupRes = await fetch('/api/auth/admin-setup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: normalizedEmail, password }),
+        });
+        if (!setupRes.ok) {
+          const setupData = await setupRes.json();
+          throw new Error(setupData.error || 'Admin initialization failed');
+        }
+      }
+
       const sb = createBrowserSupabase();
-      const { error: err } = await sb.auth.signInWithPassword({ email: email.trim(), password });
+      const { error: err } = await sb.auth.signInWithPassword({ email: normalizedEmail, password });
       if (err) {
         setError(err.message);
         return;
       }
       router.refresh();
-      router.push(next);
+      router.push(isAdmin ? '/admin' : next);
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Sign-in request failed';
       const isNetworkFailure =
