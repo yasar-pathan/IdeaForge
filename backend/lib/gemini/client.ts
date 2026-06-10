@@ -6,8 +6,8 @@ function getApiKey(): string {
   return key;
 }
 
-const FLASH_MODEL = process.env.OPENROUTER_FLASH_MODEL?.trim() || 'google/gemini-2.5-flash';
-const PRO_MODEL = process.env.OPENROUTER_PRO_MODEL?.trim() || 'google/gemini-2.5-pro';
+const FLASH_MODEL = process.env.OPENROUTER_FLASH_MODEL?.trim() || 'google/gemini-1.5-flash';
+const PRO_MODEL = process.env.OPENROUTER_PRO_MODEL?.trim() || 'google/gemini-1.5-pro';
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
