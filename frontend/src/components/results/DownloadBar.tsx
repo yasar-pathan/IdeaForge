@@ -26,16 +26,38 @@ export function DownloadBar({
     setDownloading(true);
     try {
       let res = await fetch(`/api/download-ppt?session_id=${sessionId}`, { credentials: 'include' });
+      
       if (res.status === 404) {
-        toast('Generating your PPT...');
-        const genRes = await fetch(`/api/sessions/${sessionId}/generate-module`, {
+        toast('Generating your Pitch Deck... Please wait 20-30 seconds.');
+        
+        // Trigger generation in the background without awaiting it to avoid blocking and triggering a 504 Gateway Timeout
+        void fetch(`/api/sessions/${sessionId}/generate-module`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ module: 'ppt_slides' })
+        }).catch((err) => {
+          console.warn('Background PPT generation trigger:', err);
         });
-        if (!genRes.ok) throw new Error('Generation failed');
-        res = await fetch(`/api/download-ppt?session_id=${sessionId}`, { credentials: 'include' });
+
+        // Poll the download-ppt endpoint every 3 seconds for up to 45 seconds total
+        const maxPolls = 15;
+        let success = false;
+        
+        for (let i = 0; i < maxPolls; i++) {
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+          const pollRes = await fetch(`/api/download-ppt?session_id=${sessionId}`, { credentials: 'include' });
+          if (pollRes.ok) {
+            res = pollRes;
+            success = true;
+            break;
+          }
+        }
+
+        if (!success) {
+          throw new Error('PPT generation is taking longer than expected. Please try again in a moment.');
+        }
       }
+
       if (!res.ok) throw new Error('not ready');
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -44,9 +66,9 @@ export function DownloadBar({
       a.download = `${(ideaTitle || 'ideaforge-pitch').replace(/\s+/g, '-').toLowerCase()}.pptx`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success('Pitch deck downloaded');
-    } catch {
-      toast.error('PPT not ready yet — try again in a moment');
+      toast.success('Pitch deck downloaded successfully!');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'PPT not ready yet — try again in a moment');
     } finally {
       setDownloading(false);
     }
