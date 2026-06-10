@@ -12,7 +12,7 @@
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-Auth_%2B_DB-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
-[![Gemini](https://img.shields.io/badge/Google%20Gemini-AI-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
+[![OpenRouter](https://img.shields.io/badge/OpenRouter-AI-7C6EFA?style=for-the-badge&logo=openai&logoColor=white)](https://openrouter.ai/)
 
 <br />
 
@@ -63,7 +63,7 @@
 
 | Capability | Description |
 |:-----------|:------------|
-| 🧠 **AI core** | Gemini Flash / Pro for fast, structured JSON generation |
+| 🧠 **AI core** | OpenRouter (Gemma 4 31B Free / Gemini 2.5) for fast, structured JSON generation |
 | 🧩 **Modular pipeline** | Generate sections independently from a live workspace |
 | 📊 **Feasibility** | Success scoring, roast mode, checklists, monetization |
 | 🗺 **UX planning** | Mermaid-based UI flow diagrams + screen breakdowns |
@@ -179,7 +179,7 @@ flowchart LR
 | **Styling** | ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-38B2AC?logo=tailwind-css&logoColor=white) |
 | **UI** | Radix UI · Framer Motion · Lucide |
 | **Auth & DB** | ![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?logo=supabase&logoColor=white) |
-| **AI** | Google Generative AI SDK · Gemini 2.5 Flash/Pro |
+| **AI** | OpenRouter API · Google Gemma 4 31B (Free) / Gemini 2.5 |
 | **Charts / Viz** | Recharts · Mermaid |
 | **Exports** | pptxgenjs · jsPDF · html-to-image |
 | **Validation** | Zod |
@@ -241,10 +241,10 @@ Open **http://localhost:3000**.
 | `NEXT_PUBLIC_SUPABASE_URL` | ✅ | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | Supabase anon (client) |
 | `SUPABASE_SERVICE_ROLE_KEY` | ✅ | Service role (server-only APIs) |
-| `GOOGLE_GENERATIVE_AI_API_KEY` **or** `GEMINI_API_KEY` | ✅ | Gemini API access (**keep server-only**; never expose in client code) |
+| `OPENROUTER_API_KEY` | ✅ | OpenRouter API access key (**keep server-only**) |
 | `NEXT_PUBLIC_APP_URL` | ⬜ | Base URL for share links (e.g. `https://yourdomain.com`) |
-| `GEMINI_FLASH_MODEL` | ⬜ | Override default Flash model id |
-| `GEMINI_PRO_MODEL` | ⬜ | Override default Pro model id |
+| `OPENROUTER_FLASH_MODEL` | ⬜ | Override default Flash model id (e.g. `google/gemma-4-31b-it:free`) |
+| `OPENROUTER_PRO_MODEL` | ⬜ | Override default Pro model id (e.g. `google/gemma-4-31b-it:free`) |
 | `IDEAFORGE_UNLIMITED_ANALYSES` | ⬜ | Dev: `true` to skip usage limits |
 | `IDEAFORGE_FREE_ANALYSIS_LIMIT` | ⬜ | Optional cap for free analyses |
 
