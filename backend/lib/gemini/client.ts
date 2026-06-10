@@ -75,7 +75,7 @@ async function callOpenRouter(model: string, prompt: string): Promise<Record<str
   }
 }
 
-const MAX_ATTEMPTS = 8;
+const MAX_ATTEMPTS = 4;
 const BASE_BACKOFF_MS = 2500;
 
 async function withRetries(
