@@ -202,7 +202,14 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Cannot delete the main admin account' }, { status: 400 });
     }
 
-    // Delete user from Supabase auth. Cascade will delete profiles, sessions, and checklists automatically.
+    // Workaround for Supabase role cascade bug:
+    // Delete the profile from public.users first. This cascade-deletes all their sessions,
+    // workspaces, transactions, and api keys in the public schema under the service role.
+    const { error: dbDeleteError } = await supabaseAdmin.from('users').delete().eq('id', id);
+    if (dbDeleteError) throw dbDeleteError;
+
+    // Now delete the login record from Supabase Auth. Since the profile row has already
+    // been deleted, it will not trigger the postgres role-assignment checks during cascade.
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(id);
     if (deleteError) throw deleteError;
 
