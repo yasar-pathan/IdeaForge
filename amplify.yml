@@ -1,23 +1,24 @@
 version: 1
 applications:
-  - appRoot: .
+  - appRoot: frontend
     frontend:
       phases:
         preBuild:
           commands:
-            - npm ci
+            # Go to repository root, run npm ci for monorepo workspaces, then return to frontend
+            - cd .. && npm ci && cd frontend
         build:
           commands:
-            - cd frontend && npx next build
+            - npx next build
       artifacts:
-        baseDirectory: frontend/.next
+        baseDirectory: .next
         files:
           - '**/*'
       cache:
         paths:
           - node_modules/**/*
-          - frontend/node_modules/**/*
-          - frontend/.next/cache/**/*
+          - ../node_modules/**/*
+          - .next/cache/**/*
       framework:
         config:
           functionTimeout: 300
