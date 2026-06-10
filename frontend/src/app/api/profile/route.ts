@@ -21,7 +21,7 @@ export async function GET() {
     let { data: user, error } = await supabaseAdmin
       .from('users')
       .select(
-        'id,email,name,plan,analyses_used_this_month,created_at,subscription_status,plan_expires_at,razorpay_subscription_id'
+        'id,email,name,plan,analyses_used_this_month,created_at,subscription_status,plan_expires_at,razorpay_subscription_id,country,currency,onboarding_completed'
       )
       .eq('id', userId)
       .maybeSingle();
@@ -44,7 +44,7 @@ export async function GET() {
             updated_at: new Date().toISOString(),
           })
           .select(
-            'id,email,name,plan,analyses_used_this_month,created_at,subscription_status,plan_expires_at,razorpay_subscription_id'
+            'id,email,name,plan,analyses_used_this_month,created_at,subscription_status,plan_expires_at,razorpay_subscription_id,country,currency,onboarding_completed'
           )
           .single();
         if (insertError) {
@@ -93,6 +93,9 @@ export async function GET() {
         name: user.name ?? '',
         plan,
         created_at: user.created_at,
+        country: user.country ?? 'United States',
+        currency: user.currency ?? 'USD',
+        onboarding_completed: !!user.onboarding_completed,
       },
       usage: {
         used,
@@ -122,11 +125,20 @@ export async function PATCH(req: NextRequest) {
     const userId = await getSessionUserId();
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const body = (await req.json()) as { name?: unknown; email?: unknown };
+    const body = (await req.json()) as { 
+      name?: unknown; 
+      email?: unknown; 
+      country?: unknown; 
+      currency?: unknown; 
+      onboarding_completed?: unknown;
+    };
     const name = typeof body.name === 'string' ? body.name.trim() : undefined;
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : undefined;
+    const country = typeof body.country === 'string' ? body.country.trim() : undefined;
+    const currency = typeof body.currency === 'string' ? body.currency.trim() : undefined;
+    const onboarding_completed = typeof body.onboarding_completed === 'boolean' ? body.onboarding_completed : undefined;
 
-    if (name === undefined && email === undefined) {
+    if (name === undefined && email === undefined && country === undefined && currency === undefined && onboarding_completed === undefined) {
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
     }
     if (email !== undefined && !email.includes('@')) {
@@ -136,13 +148,16 @@ export async function PATCH(req: NextRequest) {
     const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (name !== undefined) patch.name = name;
     if (email !== undefined) patch.email = email;
+    if (country !== undefined) patch.country = country;
+    if (currency !== undefined) patch.currency = currency;
+    if (onboarding_completed !== undefined) patch.onboarding_completed = onboarding_completed;
 
     const { data: updated, error } = await supabaseAdmin
       .from('users')
       .update(patch)
       .eq('id', userId)
       .select(
-        'id,email,name,plan,analyses_used_this_month,created_at,subscription_status,plan_expires_at,razorpay_subscription_id'
+        'id,email,name,plan,analyses_used_this_month,created_at,subscription_status,plan_expires_at,razorpay_subscription_id,country,currency,onboarding_completed'
       )
       .single();
 
@@ -168,6 +183,9 @@ export async function PATCH(req: NextRequest) {
         name: updated.name ?? '',
         plan,
         created_at: updated.created_at,
+        country: updated.country ?? 'United States',
+        currency: updated.currency ?? 'USD',
+        onboarding_completed: !!updated.onboarding_completed,
       },
       usage: {
         used,

@@ -3,7 +3,7 @@
 import { BarChart3, TrendingUp, AlertTriangle, MapPin } from 'lucide-react';
 import { formatNumber } from '@/backend/lib/utils';
 
-export function MarketResearchCard({ data }: { data: Record<string, unknown> | null }) {
+export function MarketResearchCard({ data, currency = 'USD' }: { data: Record<string, unknown> | null; currency?: string }) {
   if (!data) {
     return (
       <section
@@ -45,23 +45,23 @@ export function MarketResearchCard({ data }: { data: Record<string, unknown> | n
           <div className="absolute inset-4 rounded-full border-8 border-[var(--accent-primary)]/35" />
           <div className="absolute inset-8 flex flex-col items-center justify-center rounded-full border-8 border-[var(--accent-primary)]/70 bg-[var(--bg-secondary)] text-center">
             <span className="font-mono text-xs text-[var(--text-muted)]">SOM</span>
-            <span className="font-mono text-sm font-bold text-[var(--text-primary)]">{formatNumber(som)}</span>
+            <span className="font-mono text-sm font-bold text-[var(--text-primary)]">{formatNumber(som, currency)}</span>
           </div>
         </div>
         <div className="space-y-2 text-sm">
           <p>
             <span className="text-[var(--text-muted)]">TAM </span>
-            <span className="font-mono text-[var(--text-primary)]">{formatNumber(tam)}</span>
+            <span className="font-mono text-[var(--text-primary)]">{formatNumber(tam, currency)}</span>
             <span className="block text-xs text-[var(--text-muted)]">{String(data.tam_label ?? '')}</span>
           </p>
           <p>
             <span className="text-[var(--text-muted)]">SAM </span>
-            <span className="font-mono text-[var(--text-primary)]">{formatNumber(sam)}</span>
+            <span className="font-mono text-[var(--text-primary)]">{formatNumber(sam, currency)}</span>
             <span className="block text-xs text-[var(--text-muted)]">{String(data.sam_label ?? '')}</span>
           </p>
           <p>
             <span className="text-[var(--text-muted)]">SOM </span>
-            <span className="font-mono text-[var(--text-primary)]">{formatNumber(som)}</span>
+            <span className="font-mono text-[var(--text-primary)]">{formatNumber(som, currency)}</span>
             <span className="block text-xs text-[var(--text-muted)]">{String(data.som_label ?? '')}</span>
           </p>
         </div>

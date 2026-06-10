@@ -36,13 +36,17 @@ export default function DashboardPage() {
   const [sessions, setSessions] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [usage, setUsage] = useState<{ plan: string; used: number; limit: number } | null>(null);
+  const [usage, setUsage] = useState<{ plan: string; used: number; limit: number; onboarding_completed?: boolean } | null>(null);
   const [editing, setEditing] = useState<Row | null>(null);
   const [deleting, setDeleting] = useState<Row | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editCategory, setEditCategory] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  const [showOnboard, setShowOnboard] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState('United States');
+  const [onboardLoading, setOnboardLoading] = useState(false);
 
   useEffect(() => {
     fetch('/api/sessions', { credentials: 'include' })
@@ -51,12 +55,53 @@ export default function DashboardPage() {
         if (d.error) setError(d.error);
         else {
           setSessions(d.sessions || []);
-          if (d.usage) setUsage(d.usage);
+          if (d.usage) {
+            setUsage(d.usage);
+            if (d.usage.onboarding_completed === false) {
+              setShowOnboard(true);
+            }
+          }
         }
       })
       .catch(() => setError('Failed to load'))
       .finally(() => setLoading(false));
   }, []);
+
+  async function handleOnboardSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setOnboardLoading(true);
+    const currencyMap: Record<string, string> = {
+      'India': 'INR',
+      'United States': 'USD',
+      'Global': 'USD',
+      'United Kingdom': 'GBP',
+      'Europe': 'EUR',
+    };
+    const currency = currencyMap[selectedCountry] || 'USD';
+
+    try {
+      const r = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          country: selectedCountry,
+          currency: currency,
+          onboarding_completed: true,
+        }),
+      });
+      if (!r.ok) {
+        const d = await r.json();
+        throw new Error(d.error || 'Failed to save settings');
+      }
+      setShowOnboard(false);
+      setUsage((prev) => prev ? { ...prev, onboarding_completed: true } : null);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to save settings');
+    } finally {
+      setOnboardLoading(false);
+    }
+  }
 
   useEffect(() => {
     if (editing) {
@@ -391,6 +436,40 @@ export default function DashboardPage() {
             {actionLoading ? 'Deleting…' : 'Delete'}
           </Button>
         </div>
+      </Modal>
+
+      <Modal
+        open={showOnboard}
+        onOpenChange={() => {}}
+        title="Personalize your workspace"
+      >
+        <form onSubmit={handleOnboardSubmit} className="space-y-4">
+          <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+            Tell us where you are building from. We will customize your checklists, roadmaps, salaries, and budget calculations to your target country.
+          </p>
+          <div>
+            <label htmlFor="user-country" className="mb-2 block text-sm font-medium text-[var(--text-primary)]">
+              Target Country/Region
+            </label>
+            <select
+              id="user-country"
+              value={selectedCountry}
+              onChange={(e) => setSelectedCountry(e.target.value)}
+              className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-secondary)] px-4 py-3 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-primary)]"
+            >
+              <option value="United States">United States (USD)</option>
+              <option value="India">India (INR)</option>
+              <option value="Global">Global (USD)</option>
+              <option value="United Kingdom">United Kingdom (GBP)</option>
+              <option value="Europe">Europe (EUR)</option>
+            </select>
+          </div>
+          <div className="pt-2">
+            <Button type="submit" className="w-full" size="lg" loading={onboardLoading}>
+              Get Started ⚡
+            </Button>
+          </div>
+        </form>
       </Modal>
     </div>
   );

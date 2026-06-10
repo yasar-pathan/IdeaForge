@@ -13,11 +13,12 @@ export function formatCurrency(amount: number, currency = 'USD'): string {
   }).format(amount);
 }
 
-export function formatNumber(num: number): string {
-  if (num >= 1_000_000_000) return `$${(num / 1_000_000_000).toFixed(1)}B`;
-  if (num >= 1_000_000) return `$${(num / 1_000_000).toFixed(1)}M`;
-  if (num >= 1_000) return `$${(num / 1_000).toFixed(1)}K`;
-  return `$${num}`;
+export function formatNumber(num: number, currency = 'USD'): string {
+  const sym = currency === 'INR' ? '₹' : '$';
+  if (num >= 1_000_000_000) return `${sym}${(num / 1_000_000_000).toFixed(1)}B`;
+  if (num >= 1_000_000) return `${sym}${(num / 1_000_000).toFixed(1)}M`;
+  if (num >= 1_000) return `${sym}${(num / 1_000).toFixed(1)}K`;
+  return `${sym}${num}`;
 }
 
 export function sleep(ms: number): Promise<void> {

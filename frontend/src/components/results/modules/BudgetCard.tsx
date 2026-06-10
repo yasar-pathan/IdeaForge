@@ -15,13 +15,20 @@ type Line = {
 
 const COLORS = ['#7C6EFA', '#A855F7', '#22C55E', '#F59E0B', '#EF4444', '#8888AA'];
 
-export function BudgetCard({ data }: { data: Record<string, unknown> | null }) {
-  const [currency, setCurrency] = useState<'USD' | 'INR'>('USD');
+export function BudgetCard({ data, currency: currencyProp = 'USD' }: { data: Record<string, unknown> | null; currency?: string }) {
+  const baseCurrency = currencyProp === 'INR' ? 'INR' : 'USD';
+  const [currency, setCurrency] = useState<'USD' | 'INR'>(baseCurrency);
   const rate = 84;
   const monthly = (data?.monthly_costs as Line[]) ?? [];
   const setup = (data?.setup_costs as Line[]) ?? [];
 
-  const convert = (usd: number) => (currency === 'INR' ? usd * rate : usd);
+  const convert = (val: number) => {
+    if (baseCurrency === 'INR') {
+      return currency === 'USD' ? val / rate : val;
+    } else {
+      return currency === 'INR' ? val * rate : val;
+    }
+  };
 
   const pieData = useMemo(() => {
     const map: Record<string, number> = {};

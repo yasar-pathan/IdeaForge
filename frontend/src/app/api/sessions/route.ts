@@ -20,7 +20,7 @@ export async function GET() {
 
     const { data: user } = await supabaseAdmin
       .from('users')
-      .select('plan, analyses_used_this_month')
+      .select('plan, analyses_used_this_month, onboarding_completed')
       .eq('id', userId)
       .maybeSingle();
 
@@ -44,7 +44,7 @@ export async function GET() {
 
     return NextResponse.json({
       sessions: sessions || [],
-      usage: { plan, used, limit, remaining: Math.max(0, limit - used) },
+      usage: { plan, used, limit, remaining: Math.max(0, limit - used), onboarding_completed: !!user?.onboarding_completed },
     });
   } catch (error) {
     console.error('Get sessions error:', error);

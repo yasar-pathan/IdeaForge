@@ -32,6 +32,8 @@ export function ResultsDashboard({ sessionId }: { sessionId: string }) {
   const status = String(session?.status ?? '');
   const title = String(session?.idea_title ?? 'Your analysis');
   const category = String(session?.idea_category ?? '');
+  const currency = String(session?.target_currency || 'USD');
+  const region = String(session?.target_region || 'United States');
   const scoreRow = data?.success_probability as Record<string, unknown> | null | undefined;
   const overall = Number(scoreRow?.overall_score ?? 0);
 
@@ -206,7 +208,7 @@ export function ResultsDashboard({ sessionId }: { sessionId: string }) {
         >
           <SuccessScoreCard data={sp} />
           <PitchSpeechCard data={pitch} />
-          <MarketResearchCard data={market} />
+          <MarketResearchCard data={market} currency={currency} />
           <CompetitorCard data={comp} />
           <FeaturesCard data={feat} />
           <FeatureSuggestionsCard data={featSuggestions} />
@@ -214,8 +216,8 @@ export function ResultsDashboard({ sessionId }: { sessionId: string }) {
           <RoastCard data={roast} />
           <ChecklistCard data={check} sessionId={sessionId} />
           <MonetizationCard data={mon} />
-          <TeamCard data={team} />
-          <BudgetCard data={budget} />
+          <TeamCard data={team} currency={currency} region={region} />
+          <BudgetCard data={budget} currency={currency} />
           <UIFlowCard data={ui} />
         </motion.div>
       </div>

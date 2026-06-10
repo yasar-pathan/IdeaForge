@@ -13,7 +13,7 @@ type Role = {
   hire_as?: string;
 };
 
-function RoleCard({ r }: { r: Role }) {
+function RoleCard({ r, currency = 'USD' }: { r: Role; currency?: string }) {
   const hire = r.hire_as ?? '';
   const variant =
     hire.includes('founder') || hire.includes('Co')
@@ -49,11 +49,11 @@ function RoleCard({ r }: { r: Role }) {
         <div className="flex shrink-0 gap-3 font-mono text-xs">
           <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-center">
             <div className="text-[var(--text-muted)]">🇮🇳 / mo</div>
-            <div className="text-[var(--text-primary)]">{formatCurrency(r.salary_india ?? 0)}</div>
+            <div className="text-[var(--text-primary)]">{formatCurrency(r.salary_india ?? 0, currency === 'INR' ? 'INR' : 'USD')}</div>
           </div>
           <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-center">
             <div className="text-[var(--text-muted)]">🇺🇸 / mo</div>
-            <div className="text-[var(--text-primary)]">{formatCurrency(r.salary_us ?? 0)}</div>
+            <div className="text-[var(--text-primary)]">{formatCurrency(r.salary_us ?? 0, 'USD')}</div>
           </div>
         </div>
       </div>
@@ -61,7 +61,7 @@ function RoleCard({ r }: { r: Role }) {
   );
 }
 
-export function TeamCard({ data }: { data: Record<string, unknown> | null }) {
+export function TeamCard({ data, currency = 'USD', region = 'United States' }: { data: Record<string, unknown> | null; currency?: string; region?: string }) {
   const founding = (data?.founding_roles as Role[]) ?? [];
   const hires = (data?.early_hires as Role[]) ?? [];
   const india = Number(data?.total_monthly_salary_india ?? 0);
@@ -85,25 +85,25 @@ export function TeamCard({ data }: { data: Record<string, unknown> | null }) {
       <p className="mb-4 text-xs font-bold uppercase tracking-wider text-[var(--accent-primary)]">Founding team</p>
       <div className="mb-8 space-y-3">
         {founding.map((r, i) => (
-          <RoleCard key={i} r={r} />
+          <RoleCard key={i} r={r} currency={currency} />
         ))}
       </div>
 
       <p className="mb-4 text-xs font-bold uppercase tracking-wider text-[var(--accent-primary)]">Early hires</p>
       <div className="mb-8 space-y-3">
         {hires.map((r, i) => (
-          <RoleCard key={i} r={r} />
+          <RoleCard key={i} r={r} currency={currency} />
         ))}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="rounded-xl border border-[var(--success)]/30 bg-[var(--success-bg)] p-4 text-center">
           <p className="text-xs text-[var(--text-muted)]">Total India / mo</p>
-          <p className="font-mono text-xl font-bold text-[var(--success)]">{formatCurrency(india)}</p>
+          <p className="font-mono text-xl font-bold text-[var(--success)]">{formatCurrency(india, currency === 'INR' ? 'INR' : 'USD')}</p>
         </div>
         <div className="rounded-xl border border-[var(--accent-primary)]/30 bg-[var(--accent-glow)] p-4 text-center">
           <p className="text-xs text-[var(--text-muted)]">Total US / mo</p>
-          <p className="font-mono text-xl font-bold text-[var(--text-primary)]">{formatCurrency(us)}</p>
+          <p className="font-mono text-xl font-bold text-[var(--text-primary)]">{formatCurrency(us, 'USD')}</p>
         </div>
       </div>
     </section>

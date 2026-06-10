@@ -141,6 +141,8 @@ export async function POST(req: NextRequest) {
       .insert({
         user_id: userId,
         raw_idea: idea.trim(),
+        target_region: user?.country || 'United States',
+        target_currency: user?.currency || 'USD',
         status: 'processing',
       })
       .select()

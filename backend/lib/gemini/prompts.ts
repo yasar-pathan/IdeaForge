@@ -19,8 +19,8 @@ Return ONLY a valid JSON object with this exact structure:
 }
 `,
 
-  marketResearch: (idea: string) => `
-You are a professional market research analyst. Provide comprehensive market research for this startup idea.
+  marketResearch: (idea: string, region = 'United States', currency = 'USD') => `
+You are a professional market research analyst. Provide comprehensive market research for this startup idea, specifically tailored for target market/geography: ${region}.
 
 IDEA: ${idea}
 
@@ -46,7 +46,7 @@ Return ONLY a valid JSON object with this exact structure:
   "top_regions": ["Region 1 - reason", "Region 2 - reason", "Region 3 - reason"]
 }
 
-Use realistic market data. TAM/SAM/SOM should be in raw numbers (USD).
+Use realistic market data for the target region: ${region}. TAM/SAM/SOM should be in raw numbers in ${currency}. Keep labels (tam_label, sam_label, som_label) descriptive and format them in ${currency} (e.g. using the symbol ${currency === 'INR' ? '₹' : '$'}).
 `,
 
   competitorIntelligence: (idea: string) => `
@@ -109,8 +109,8 @@ Return ONLY a valid JSON object with this exact structure:
 Overall score = weighted average of all 8 dimensions multiplied by 10. Be specific in improvement actions.
 `,
 
-  featureRecommendations: (idea: string) => `
-You are a senior product manager. Generate a complete feature roadmap and development workflow for this startup idea.
+  featureRecommendations: (idea: string, region = 'United States') => `
+You are a senior product manager. Generate a complete feature roadmap and development workflow for this startup idea, tailored for target region: ${region}.
 
 IDEA: ${idea}
 
@@ -153,8 +153,8 @@ MVP: 8-12 features. V1: 6-10 features. V2: 5-8 features.
 Be specific and realistic. Prefer features that unblock user value (core workflows), reduce risk (instrumentation/analytics/monitoring), and improve monetization/retention.
 `,
 
-  featureSuggestions: (idea: string) => `
-You are a principal product strategist. Suggest high-impact features that can make this project significantly better.
+  featureSuggestions: (idea: string, region = 'United States') => `
+You are a principal product strategist. Suggest high-impact features that can make this project significantly better, tailored for target region: ${region}.
 
 IDEA: ${idea}
 
@@ -271,8 +271,8 @@ Return ONLY a valid JSON object with this exact structure:
 Generate 16-20 tasks total. Distribute evenly across 4 phases. Tasks must be specific to THIS idea. No generic startup advice.
 `,
 
-  monetizationStrategies: (idea: string) => `
-You are a monetization strategy expert. Recommend the best monetization models for this startup idea.
+  monetizationStrategies: (idea: string, region = 'United States', currency = 'USD') => `
+You are a monetization strategy expert. Recommend the best monetization models for this startup idea, specifically tailored for target market: ${region}.
 
 IDEA: ${idea}
 
@@ -293,11 +293,11 @@ Return ONLY a valid JSON object with this exact structure:
   "recommendation_reasoning": "Clear explanation of why this is the best model for this specific idea"
 }
 
-Generate 3-4 strategies ranked by fit_score descending. Be specific about revenue projections.
+Generate 3-4 strategies ranked by fit_score descending. Express revenue projections in ${currency} (e.g., using the symbol ${currency === 'INR' ? '₹' : '$'}).
 `,
 
-  teamStructure: (idea: string) => `
-You are a startup team building expert. Define the ideal team structure for this startup idea.
+  teamStructure: (idea: string, region = 'United States', currency = 'USD') => `
+You are a startup team building expert. Define the ideal team structure for this startup idea, specifically tailored for target market: ${region}.
 
 IDEA: ${idea}
 
@@ -327,11 +327,12 @@ Return ONLY a valid JSON object with this exact structure:
   "total_monthly_salary_us": 240000
 }
 
-Salary in USD/month. India salary = realistic Indian market rate. US = US market rate. Founding team: 2-3 roles. Early hires: 2-4 roles.
+If target currency is INR, "salary_india" and "total_monthly_salary_india" MUST be expressed in INR per month (Rupees, e.g. 150000 for ₹1.5 Lakhs/mo), representing realistic Indian market tech rates. "salary_us" and "total_monthly_salary_us" must remain in USD.
+If target currency is USD (or other regions), use standard USD salaries for the US column, and realistic equivalent rates for India.
 `,
 
-  budgetBreakdown: (idea: string) => `
-You are a startup financial analyst. Generate a detailed realistic budget breakdown for building and running this product.
+  budgetBreakdown: (idea: string, region = 'United States', currency = 'USD') => `
+You are a startup financial analyst. Generate a detailed realistic budget breakdown for building and running this product, tailored for target region: ${region}.
 
 IDEA: ${idea}
 
@@ -358,10 +359,10 @@ Return ONLY a valid JSON object with this exact structure:
   "burn_rate_launch": 500,
   "burn_rate_1k": 1500,
   "burn_rate_10k": 8000,
-  "currency": "USD"
+  "currency": "${currency}"
 }
 
-Setup costs are one-time. Monthly costs are recurring. Be realistic - include: hosting, database, AI API costs, auth, storage, monitoring, domain, SSL. Burn rates = total monthly spend at each user scale. Include 10% buffer in calculations.
+Note: Even though the JSON field keys contain '_usd' for database compatibility, all numerical values for costs (monthly_cost_usd, burn_rate_launch, burn_rate_1k, burn_rate_10k) MUST be generated in the target currency: ${currency} (e.g. if currency is INR, return numbers in Rupees, like 50000 instead of USD equivalent). The 'currency' field in the JSON response must be set to '${currency}'.
 `,
 
   uiFlow: (idea: string) => `
@@ -387,8 +388,8 @@ Cover all major screens: onboarding, core features, secondary features, settings
 Mermaid rules (critical): use short node IDs (A, B, C1, …) and put human-readable text in square brackets only when it contains no ] or " characters; if a label needs brackets or quotes, use double-quoted strings for the label, e.g. A["Login / Sign up"]. Do not put raw JSON or markdown inside mermaid_code—only the diagram text.
 `,
 
-  pptSlides: (idea: string, analysis: unknown) => `
-You are a pitch deck designer. Generate content for a 12-slide investor pitch deck.
+  pptSlides: (idea: string, analysis: unknown, region = 'United States', currency = 'USD') => `
+You are a pitch deck designer. Generate content for a 12-slide investor pitch deck, tailored for target region: ${region} and currency: ${currency}.
 
 IDEA: ${idea}
 ANALYSIS SUMMARY: ${JSON.stringify(analysis)}

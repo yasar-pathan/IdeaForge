@@ -44,6 +44,15 @@ async function refreshSessionCompleteIfAllModules(sessionId: string) {
  * `idea_title` only updates `idea_sessions` (no module_status row).
  */
 export async function runSingleModule(sessionId: string, rawIdea: string, moduleId: string): Promise<void> {
+  const { data: session } = await supabaseAdmin
+    .from('idea_sessions')
+    .select('target_region, target_currency')
+    .eq('id', sessionId)
+    .single();
+
+  const region = session?.target_region || 'United States';
+  const currency = session?.target_currency || 'USD';
+
   switch (moduleId) {
     case 'idea_title': {
       const titleData = await generateWithFlash(PROMPTS.ideaTitleAndCategory(rawIdea));
@@ -69,7 +78,7 @@ export async function runSingleModule(sessionId: string, rawIdea: string, module
       break;
     }
     case 'market_research': {
-      const data = await generateWithFlash(PROMPTS.marketResearch(rawIdea));
+      const data = await generateWithFlash(PROMPTS.marketResearch(rawIdea, region, currency));
       {
         const { error } = await supabaseAdmin
           .from('market_research')
@@ -102,7 +111,7 @@ export async function runSingleModule(sessionId: string, rawIdea: string, module
       break;
     }
     case 'feature_recommendations': {
-      const data = await generateWithFlash(PROMPTS.featureRecommendations(rawIdea));
+      const data = await generateWithFlash(PROMPTS.featureRecommendations(rawIdea, region));
       {
         const { error } = await supabaseAdmin
           .from('feature_recommendations')
@@ -113,7 +122,7 @@ export async function runSingleModule(sessionId: string, rawIdea: string, module
       break;
     }
     case 'feature_suggestions': {
-      const data = await generateWithFlash(PROMPTS.featureSuggestions(rawIdea));
+      const data = await generateWithFlash(PROMPTS.featureSuggestions(rawIdea, region));
       {
         const { error } = await supabaseAdmin
           .from('feature_suggestions')
@@ -157,7 +166,7 @@ export async function runSingleModule(sessionId: string, rawIdea: string, module
       break;
     }
     case 'monetization_strategies': {
-      const data = await generateWithFlash(PROMPTS.monetizationStrategies(rawIdea));
+      const data = await generateWithFlash(PROMPTS.monetizationStrategies(rawIdea, region, currency));
       {
         const { error } = await supabaseAdmin
           .from('monetization_strategies')
@@ -168,7 +177,7 @@ export async function runSingleModule(sessionId: string, rawIdea: string, module
       break;
     }
     case 'team_structure': {
-      const data = await generateWithFlash(PROMPTS.teamStructure(rawIdea));
+      const data = await generateWithFlash(PROMPTS.teamStructure(rawIdea, region, currency));
       {
         const { error } = await supabaseAdmin
           .from('team_structure')
@@ -179,7 +188,7 @@ export async function runSingleModule(sessionId: string, rawIdea: string, module
       break;
     }
     case 'budget_breakdown': {
-      const data = await generateWithFlash(PROMPTS.budgetBreakdown(rawIdea));
+      const data = await generateWithFlash(PROMPTS.budgetBreakdown(rawIdea, region, currency));
       {
         const { error } = await supabaseAdmin
           .from('budget_breakdown')
@@ -206,7 +215,7 @@ export async function runSingleModule(sessionId: string, rawIdea: string, module
         .select('*')
         .eq('session_id', sessionId)
         .maybeSingle();
-      const pptData = await generateWithFlash(PROMPTS.pptSlides(rawIdea, analysis || {}));
+      const pptData = await generateWithFlash(PROMPTS.pptSlides(rawIdea, analysis || {}, region, currency));
       await supabaseAdmin.from('ppt_slides').delete().eq('session_id', sessionId);
       if (pptData.slides && Array.isArray(pptData.slides)) {
         const { error } = await supabaseAdmin.from('ppt_slides').insert(
