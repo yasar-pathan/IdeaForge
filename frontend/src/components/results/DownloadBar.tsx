@@ -39,8 +39,8 @@ export function DownloadBar({
           console.warn('Background PPT generation trigger:', err);
         });
 
-        // Poll the download-ppt endpoint every 3 seconds for up to 45 seconds total
-        const maxPolls = 15;
+        // Poll the download-ppt endpoint every 3 seconds for up to 90 seconds total
+        const maxPolls = 30;
         let success = false;
         
         for (let i = 0; i < maxPolls; i++) {
