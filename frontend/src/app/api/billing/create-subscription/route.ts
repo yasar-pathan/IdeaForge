@@ -85,6 +85,19 @@ export async function POST(req: NextRequest) {
   } catch (err: unknown) {
     console.error('Subscription error:', err);
     const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ 
+      error: message, 
+      stack: err instanceof Error ? err.stack : undefined,
+      env: {
+        hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+        hasAnon: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+        hasService: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+        hasRazorpayId: !!process.env.RAZORPAY_KEY_ID,
+        hasRazorpaySecret: !!process.env.RAZORPAY_KEY_SECRET,
+        hasPlanPro: !!process.env.NEXT_PUBLIC_RAZORPAY_PLAN_PRO,
+        hasPlanFounder: !!process.env.NEXT_PUBLIC_RAZORPAY_PLAN_FOUNDER,
+        planProVal: process.env.NEXT_PUBLIC_RAZORPAY_PLAN_PRO ? process.env.NEXT_PUBLIC_RAZORPAY_PLAN_PRO.substring(0, 8) + '...' : 'none',
+      }
+    }, { status: 500 });
   }
 }
