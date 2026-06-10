@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabase, getSessionUserId } from '@/backend/lib/supabase/server';
+import { createServerSupabase, getSessionUserId, supabaseAdmin } from '@/backend/lib/supabase/server';
 import { razorpay, PLANS } from '@/backend/lib/razorpay';
 
 export async function POST(req: NextRequest) {
@@ -13,8 +13,33 @@ export async function POST(req: NextRequest) {
     }
 
     const sb = await createServerSupabase();
-    const { data: user } = await sb.from('users').select('*').eq('id', userId).single();
-    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    let { data: user } = await sb.from('users').select('*').eq('id', userId).maybeSingle();
+    
+    if (!user) {
+      // Auto-sync/recreate the user from Supabase Auth in case the database trigger was skipped
+      const { data: { user: authUser } } = await sb.auth.getUser();
+      if (authUser) {
+        const name = authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || '';
+        const { data: newUser, error: insertError } = await supabaseAdmin
+          .from('users')
+          .upsert({
+            id: userId,
+            email: authUser.email,
+            name: name,
+            plan: 'free',
+            updated_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+        if (insertError) {
+          console.error('Auto-creation of user failed in create-subscription:', insertError);
+          return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
+        user = newUser;
+      } else {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
+    }
 
     const currentPlan = String(user.plan ?? 'free');
     if (currentPlan === 'founder') {

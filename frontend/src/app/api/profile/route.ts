@@ -18,7 +18,7 @@ export async function GET() {
     const userId = await getSessionUserId();
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { data: user, error } = await supabaseAdmin
+    let { data: user, error } = await supabaseAdmin
       .from('users')
       .select(
         'id,email,name,plan,analyses_used_this_month,created_at,subscription_status,plan_expires_at,razorpay_subscription_id'
@@ -27,7 +27,35 @@ export async function GET() {
       .maybeSingle();
 
     if (error) throw error;
-    if (!user) return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+
+    if (!user) {
+      // Auto-sync/recreate the user profile if missing
+      const sb = await createServerSupabase();
+      const { data: { user: authUser } } = await sb.auth.getUser();
+      if (authUser) {
+        const name = authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || '';
+        const { data: newUser, error: insertError } = await supabaseAdmin
+          .from('users')
+          .upsert({
+            id: userId,
+            email: authUser.email,
+            name: name,
+            plan: 'free',
+            updated_at: new Date().toISOString(),
+          })
+          .select(
+            'id,email,name,plan,analyses_used_this_month,created_at,subscription_status,plan_expires_at,razorpay_subscription_id'
+          )
+          .single();
+        if (insertError) {
+          console.error('Auto-creation of user failed in profile GET:', insertError);
+          return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+        }
+        user = newUser;
+      } else {
+        return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+      }
+    }
 
     const plan = String(user.plan ?? 'free');
     const used = Number(user.analyses_used_this_month ?? 0);
