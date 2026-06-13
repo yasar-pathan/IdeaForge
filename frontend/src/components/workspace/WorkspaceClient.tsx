@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Check, Sparkles } from 'lucide-react';
@@ -12,6 +12,12 @@ import { Card } from '@/frontend/components/ui/Card';
 import { Badge } from '@/frontend/components/ui/Badge';
 import { HyperSpeedLoader } from '@/frontend/components/ui/HyperSpeedLoader';
 import { MODULE_STATUS_KEYS } from '@/backend/lib/modules';
+import { motion } from 'framer-motion';
+import { playChime } from '@/frontend/lib/audio';
+import { AIThinkingTicker } from '@/frontend/components/ui/AIThinkingTicker';
+import { SoundToggleButton } from '@/frontend/components/ui/SoundToggleButton';
+import { Modal } from '@/frontend/components/ui/Modal';
+import { StartupClicker } from '@/frontend/components/ui/StartupClicker';
 
 type ModuleStatusRow = Record<string, boolean | string | null | undefined>;
 
@@ -30,6 +36,19 @@ export function WorkspaceClient({ sessionId }: { sessionId: string }) {
   const router = useRouter();
   const { data, isLoading, error, refetch } = useSession(sessionId, true);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const [showGameModal, setShowGameModal] = useState(false);
+
+  useEffect(() => {
+    if (!loadingId) {
+      setElapsed(0);
+      return;
+    }
+    const timer = setInterval(() => {
+      setElapsed((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [loadingId]);
 
   const session = (data?.session as Record<string, unknown>) ?? null;
   const moduleStatus = (data?.module_status as ModuleStatusRow) ?? null;
@@ -90,6 +109,7 @@ export function WorkspaceClient({ sessionId }: { sessionId: string }) {
           throw new Error('Generation is taking longer than expected. Please refresh the page in a moment to check.');
         }
 
+        playChime();
         toast.success(`${WORKSPACE_MODULE_ROWS.find((r) => r.id === moduleId)?.label ?? 'Module'} ready`);
         await refetch();
       } catch (e) {
@@ -126,9 +146,15 @@ export function WorkspaceClient({ sessionId }: { sessionId: string }) {
           <ArrowLeft className="h-4 w-4" />
           Dashboard
         </Link>
-        <Button variant="secondary" size="sm" onClick={() => router.push(`/results/${sessionId}`)}>
-          View all results
-        </Button>
+        <div className="flex items-center gap-3">
+          <SoundToggleButton />
+          <Button variant="secondary" size="sm" onClick={() => setShowGameModal(true)}>
+            🎮 Startup Clicker
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => router.push(`/results/${sessionId}`)}>
+            View all results
+          </Button>
+        </div>
       </div>
 
       <div className="mb-8">
@@ -162,47 +188,82 @@ export function WorkspaceClient({ sessionId }: { sessionId: string }) {
           const done = isDone(row.id, session, moduleStatus);
           const busy = loadingId === row.id;
           return (
-            <Card key={row.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-display font-semibold text-[var(--text-primary)]">{row.label}</span>
+            <Card key={row.id} className="flex flex-col gap-3 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-display font-semibold text-[var(--text-primary)]">{row.label}</span>
+                    {done ? (
+                      <Badge variant="success" className="text-[10px]">
+                        <Check className="mr-0.5 h-3 w-3" />
+                        Done
+                      </Badge>
+                    ) : null}
+                  </div>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">{row.hint}</p>
                   {done ? (
-                    <Badge variant="success" className="text-[10px]">
-                      <Check className="mr-0.5 h-3 w-3" />
-                      Done
-                    </Badge>
+                    <Link
+                      href={`/results/${sessionId}${resultsHashForWorkspaceModule(row.id)}`}
+                      className="mt-2 inline-flex text-xs font-semibold text-[var(--accent-primary)] hover:underline"
+                    >
+                      {row.id === 'idea_title'
+                        ? 'View title & category on results →'
+                        : row.id === 'ppt_slides'
+                          ? 'Open results (download PPT at bottom) →'
+                          : 'View this result →'}
+                    </Link>
                   ) : null}
                 </div>
-                <p className="mt-1 text-xs text-[var(--text-muted)]">{row.hint}</p>
-                {done ? (
-                  <Link
-                    href={`/results/${sessionId}${resultsHashForWorkspaceModule(row.id)}`}
-                    className="mt-2 inline-flex text-xs font-semibold text-[var(--accent-primary)] hover:underline"
-                  >
-                    {row.id === 'idea_title'
-                      ? 'View title & category on results →'
-                      : row.id === 'ppt_slides'
-                        ? 'Open results (download PPT at bottom) →'
-                        : 'View this result →'}
-                  </Link>
-                ) : null}
+                <Button
+                  size="md"
+                  variant={done ? 'secondary' : 'primary'}
+                  disabled={busy}
+                  loading={busy}
+                  onClick={() => runModule(row.id)}
+                  className="w-full shrink-0 sm:w-40"
+                >
+                  {busy ? (
+                    'Working…'
+                  ) : done ? (
+                    'Regenerate'
+                  ) : (
+                    'Generate'
+                  )}
+                </Button>
               </div>
-              <Button
-                size="md"
-                variant={done ? 'secondary' : 'primary'}
-                disabled={busy}
-                loading={busy}
-                onClick={() => runModule(row.id)}
-                className="w-full shrink-0 sm:w-40"
-              >
-                {busy ? (
-                  'Working…'
-                ) : done ? (
-                  'Regenerate'
-                ) : (
-                  'Generate'
-                )}
-              </Button>
+
+              {busy && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden rounded-xl border border-[var(--accent-primary)]/20 bg-[var(--bg-secondary)] p-3"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <AIThinkingTicker moduleId={row.id} />
+                    <span className="text-[10px] font-mono text-[var(--text-secondary)]">
+                      ⏱ {elapsed}s elapsed — forging result...
+                    </span>
+                  </div>
+                  {/* Micro-shimmer bar */}
+                  <div className="mt-2.5 h-1 w-full overflow-hidden rounded-full bg-[var(--bg-elevated)]">
+                    <div className="h-full w-2/3 rounded-full bg-gradient-to-r from-[#7C6EFA] to-[#A855F7] animate-pulse" />
+                  </div>
+                  {/* Proactive Game Pitch */}
+                  <div className="mt-3 flex items-center justify-between border-t border-[var(--border)] pt-2.5">
+                    <span className="text-[10px] text-[var(--text-muted)]">
+                      ⚡ Takes ~30-40 seconds
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowGameModal(true)}
+                      className="inline-flex items-center gap-1 text-[10px] font-bold text-[var(--accent-primary)] hover:underline cursor-pointer"
+                    >
+                      🎮 Bored? Play Startup Clicker while you wait →
+                    </button>
+                  </div>
+                </motion.div>
+              )}
             </Card>
           );
         })}
@@ -211,6 +272,16 @@ export function WorkspaceClient({ sessionId }: { sessionId: string }) {
       <p className="mt-10 text-center text-xs text-[var(--text-muted)]">
         When every block is done, the session is marked complete. You can regenerate any section anytime.
       </p>
+
+      {/* Startup Clicker Modal */}
+      <Modal
+        open={showGameModal}
+        onOpenChange={setShowGameModal}
+        title="Unicorn Clicker Simulator"
+        className="w-[min(94vw,620px)]"
+      >
+        <StartupClicker />
+      </Modal>
     </div>
   );
 }

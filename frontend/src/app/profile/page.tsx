@@ -9,6 +9,8 @@ import { Input } from '@/frontend/components/ui/Input';
 import { UsageBar } from '@/frontend/components/ui/UsageBar';
 import { UpgradeModal } from '@/frontend/components/ui/UpgradeModal';
 import { createBrowserSupabase } from '@/backend/lib/supabase/client';
+import { isSoundEnabled, setSoundEnabled } from '@/frontend/lib/audio';
+
 
 type ProfilePayload = {
   profile: {
@@ -40,6 +42,17 @@ export default function ProfilePage() {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [upgradePlan, setUpgradePlan] = useState<'pro' | 'founder'>('pro');
+  const [sound, setSoundState] = useState(true);
+
+  useEffect(() => {
+    setSoundState(isSoundEnabled());
+  }, []);
+
+  const setSound = (val: boolean) => {
+    setSoundState(val);
+    setSoundEnabled(val);
+    toast.success(`Sound effects turned ${val ? 'on' : 'off'}`);
+  };
 
   useEffect(() => {
     fetch('/api/profile', { credentials: 'include' })
@@ -285,7 +298,38 @@ export default function ProfilePage() {
         </Card>
       </div>
 
-      <div className="mt-6 grid gap-4">
+      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        <Card className="p-6">
+          <h2 className="font-display text-lg font-semibold text-[var(--text-primary)]">App settings</h2>
+          <p className="mt-1 text-xs text-[var(--text-secondary)]">
+            Configure your workspace and app preferences.
+          </p>
+          <div className="mt-6 space-y-4">
+            <div className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
+              <div>
+                <p className="text-sm font-semibold text-[var(--text-primary)]">Sound effects</p>
+                <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+                  Play satisfying chimes when modules finish generating
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSound(!sound)}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  sound ? 'bg-[var(--accent-primary)]' : 'bg-[var(--bg-elevated)] border-[var(--border-bright)]'
+                }`}
+                aria-label="Toggle sound effects"
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-[var(--text-primary)] shadow-lg ring-0 transition duration-200 ease-in-out ${
+                    sound ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+        </Card>
+
         <Card className="p-6">
           <h2 className="font-display text-lg font-semibold text-[var(--text-primary)]">Change password</h2>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
