@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { createBrowserSupabase } from '@/backend/lib/supabase/client';
 import { Button } from '@/frontend/components/ui/Button';
-import { Menu, X, Hexagon, LayoutDashboard, LogOut, User as UserIcon } from 'lucide-react';
+import { Menu, X, LayoutDashboard, LogOut, User as UserIcon } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import type { User } from '@supabase/supabase-js';
 import { cn } from '@/backend/lib/utils';
@@ -67,7 +67,7 @@ export function Navbar() {
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2">
-          <Hexagon className="h-8 w-8 text-[var(--accent-primary)]" strokeWidth={1.5} />
+          <img src="/icon.png" alt="IdeaForge Logo" className="h-8 w-8 object-contain" />
           <span className="font-display text-xl font-bold gradient-text">IdeaForge</span>
         </Link>
 

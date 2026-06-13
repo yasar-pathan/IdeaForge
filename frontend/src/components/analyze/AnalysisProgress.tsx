@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Hexagon, Loader2, Check } from 'lucide-react';
+import { Loader2, Check } from 'lucide-react';
 import { Progress } from '@/frontend/components/ui/Progress';
 import { Button } from '@/frontend/components/ui/Button';
 import { useSessionStatus } from '@/frontend/hooks/useSessionStatus';
@@ -46,7 +46,7 @@ export function AnalysisProgress({ sessionId }: { sessionId: string }) {
         animate={{ opacity: 1, scale: 1 }}
         className="mb-8 flex h-20 w-20 items-center justify-center rounded-2xl border border-[var(--border-bright)] bg-[var(--bg-card)] shadow-[var(--shadow-glow)]"
       >
-        <Hexagon className="h-10 w-10 animate-pulse text-[var(--accent-primary)]" />
+        <img src="/icon.png" alt="IdeaForge Logo" className="h-10 w-10 animate-pulse object-contain" />
       </motion.div>
 
       <h1 className="font-display text-center text-3xl font-bold text-[var(--text-primary)] md:text-4xl">

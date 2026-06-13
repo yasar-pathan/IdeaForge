@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { Hexagon } from 'lucide-react';
 
 export function Footer() {
   return (
@@ -8,7 +7,7 @@ export function Footer() {
         <div className="flex flex-col gap-10 md:flex-row md:justify-between">
           <div>
             <div className="mb-3 flex items-center gap-2">
-              <Hexagon className="h-7 w-7 text-[var(--accent-primary)]" strokeWidth={1.5} />
+              <img src="/icon.png" alt="IdeaForge Logo" className="h-7 w-7 object-contain" />
               <span className="font-display text-lg font-bold gradient-text">IdeaForge</span>
             </div>
             <p className="max-w-xs text-sm text-[var(--text-secondary)]">
