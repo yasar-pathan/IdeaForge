@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Check, Sparkles } from 'lucide-react';
@@ -16,7 +16,6 @@ import { motion } from 'framer-motion';
 import { playChime } from '@/frontend/lib/audio';
 import { AIThinkingTicker } from '@/frontend/components/ui/AIThinkingTicker';
 import { SoundToggleButton } from '@/frontend/components/ui/SoundToggleButton';
-import { Modal } from '@/frontend/components/ui/Modal';
 import { StartupClicker } from '@/frontend/components/ui/StartupClicker';
 
 type ModuleStatusRow = Record<string, boolean | string | null | undefined>;
@@ -37,7 +36,15 @@ export function WorkspaceClient({ sessionId }: { sessionId: string }) {
   const { data, isLoading, error, refetch } = useSession(sessionId, true);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
-  const [showGameModal, setShowGameModal] = useState(false);
+
+  const [isGeneratingAll, setIsGeneratingAll] = useState(false);
+  const cancelGenerateAllRef = useRef(false);
+
+  // Sync data to ref to avoid React closure issues in runAllMissing loop
+  const dataRef = useRef(data);
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
 
   useEffect(() => {
     if (!loadingId) {
@@ -67,7 +74,7 @@ export function WorkspaceClient({ sessionId }: { sessionId: string }) {
   const totalPickable = 1 + MODULE_STATUS_KEYS.length;
 
   const runModule = useCallback(
-    async (moduleId: string) => {
+    async (moduleId: string): Promise<boolean> => {
       setLoadingId(moduleId);
       try {
         const res = await fetch(`/api/sessions/${sessionId}/generate-module`, {
@@ -112,14 +119,77 @@ export function WorkspaceClient({ sessionId }: { sessionId: string }) {
         playChime();
         toast.success(`${WORKSPACE_MODULE_ROWS.find((r) => r.id === moduleId)?.label ?? 'Module'} ready`);
         await refetch();
+        return true;
       } catch (e) {
         toast.error(e instanceof Error ? e.message : 'Failed');
+        return false;
       } finally {
         setLoadingId(null);
       }
     },
     [sessionId, refetch]
   );
+
+  const runAllMissing = async () => {
+    if (isGeneratingAll) {
+      cancelGenerateAllRef.current = true;
+      toast.info('Stopping batch generation...');
+      return;
+    }
+
+    const currentSession = (dataRef.current?.session as Record<string, unknown>) ?? null;
+    const currentStatus = (dataRef.current?.module_status as ModuleStatusRow) ?? null;
+
+    const missing = WORKSPACE_MODULE_ROWS.filter(
+      (row) => !isDone(row.id, currentSession, currentStatus)
+    );
+
+    if (missing.length === 0) {
+      toast.info('All modules are already generated!');
+      return;
+    }
+
+    setIsGeneratingAll(true);
+    cancelGenerateAllRef.current = false;
+    toast.info(`Starting batch generation of ${missing.length} modules...`);
+
+    try {
+      for (const row of missing) {
+        if (cancelGenerateAllRef.current) {
+          toast.info('Batch generation stopped.');
+          break;
+        }
+
+        // Read dynamic ref value to prevent double generation if finished in parallel
+        const latestSession = (dataRef.current?.session as Record<string, unknown>) ?? null;
+        const latestStatus = (dataRef.current?.module_status as ModuleStatusRow) ?? null;
+        if (isDone(row.id, latestSession, latestStatus)) {
+          continue;
+        }
+
+        const success = await runModule(row.id);
+        if (!success) {
+          toast.error(`Batch stopped due to error on: ${row.label}`);
+          break;
+        }
+      }
+
+      const finalSession = (dataRef.current?.session as Record<string, unknown>) ?? null;
+      const finalStatus = (dataRef.current?.module_status as ModuleStatusRow) ?? null;
+      const finalMissing = WORKSPACE_MODULE_ROWS.filter(
+        (row) => !isDone(row.id, finalSession, finalStatus)
+      );
+
+      if (finalMissing.length === 0 && !cancelGenerateAllRef.current) {
+        toast.success('🎉 All workspace modules are complete!');
+      }
+    } catch (err) {
+      toast.error('An unexpected error occurred during batch generation.');
+    } finally {
+      setIsGeneratingAll(false);
+      cancelGenerateAllRef.current = false;
+    }
+  };
 
   if (isLoading && !data) {
     return <HyperSpeedLoader title="Forging your workspace" subtitle="Booting modules and linking result pipeline" />;
@@ -148,9 +218,16 @@ export function WorkspaceClient({ sessionId }: { sessionId: string }) {
         </Link>
         <div className="flex items-center gap-3">
           <SoundToggleButton />
-          <Button variant="secondary" size="sm" onClick={() => setShowGameModal(true)}>
-            🎮 Startup Clicker
-          </Button>
+          {doneCount < totalPickable && (
+            <Button
+              variant={isGeneratingAll ? 'secondary' : 'primary'}
+              size="sm"
+              disabled={loadingId !== null && !isGeneratingAll}
+              onClick={runAllMissing}
+            >
+              {isGeneratingAll ? '⏹ Stop generating' : '⚡ Generate all remaining'}
+            </Button>
+          )}
           <Button variant="secondary" size="sm" onClick={() => router.push(`/results/${sessionId}`)}>
             View all results
           </Button>
@@ -217,7 +294,7 @@ export function WorkspaceClient({ sessionId }: { sessionId: string }) {
                 <Button
                   size="md"
                   variant={done ? 'secondary' : 'primary'}
-                  disabled={busy}
+                  disabled={busy || isGeneratingAll}
                   loading={busy}
                   onClick={() => runModule(row.id)}
                   className="w-full shrink-0 sm:w-40"
@@ -233,6 +310,7 @@ export function WorkspaceClient({ sessionId }: { sessionId: string }) {
               </div>
 
               {busy && (
+                <>
                 <motion.div
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
@@ -249,20 +327,27 @@ export function WorkspaceClient({ sessionId }: { sessionId: string }) {
                   <div className="mt-2.5 h-1 w-full overflow-hidden rounded-full bg-[var(--bg-elevated)]">
                     <div className="h-full w-2/3 rounded-full bg-gradient-to-r from-[#7C6EFA] to-[#A855F7] animate-pulse" />
                   </div>
-                  {/* Proactive Game Pitch */}
-                  <div className="mt-3 flex items-center justify-between border-t border-[var(--border)] pt-2.5">
-                    <span className="text-[10px] text-[var(--text-muted)]">
-                      ⚡ Takes ~30-40 seconds
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setShowGameModal(true)}
-                      className="inline-flex items-center gap-1 text-[10px] font-bold text-[var(--accent-primary)] hover:underline cursor-pointer"
-                    >
-                      🎮 Bored? Play Startup Clicker while you wait →
-                    </button>
+                  <div className="mt-2 text-[10px] text-[var(--text-muted)]">
+                    ⚡ Takes ~30-40 seconds
                   </div>
                 </motion.div>
+
+                {/* Inline game — appears right here, no clicking needed */}
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  transition={{ delay: 0.5, duration: 0.4 }}
+                  className="overflow-hidden"
+                >
+                  <div className="flex items-center gap-1.5 mb-2 mt-1">
+                    <span className="text-xs">🎮</span>
+                    <span className="text-[10px] font-bold text-[var(--text-secondary)]">
+                      Play while you wait
+                    </span>
+                  </div>
+                  <StartupClicker />
+                </motion.div>
+                </>
               )}
             </Card>
           );
@@ -273,15 +358,7 @@ export function WorkspaceClient({ sessionId }: { sessionId: string }) {
         When every block is done, the session is marked complete. You can regenerate any section anytime.
       </p>
 
-      {/* Startup Clicker Modal */}
-      <Modal
-        open={showGameModal}
-        onOpenChange={setShowGameModal}
-        title="Unicorn Clicker Simulator"
-        className="w-[min(94vw,620px)]"
-      >
-        <StartupClicker />
-      </Modal>
+
     </div>
   );
 }

@@ -1,551 +1,633 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Gamepad2, RotateCcw, HelpCircle, Trophy, Keyboard, Check, AlertCircle } from 'lucide-react';
+import { Gamepad2, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 
-// ==========================================
-// GAME 1: 2048 MECHANICS
-// ==========================================
-
-function transpose(board: number[][]): number[][] {
-  return board[0].map((_, colIdx) => board.map(row => row[colIdx]));
-}
-
-function reverseRows(board: number[][]): number[][] {
-  return board.map(row => [...row].reverse());
-}
-
-function slideRowLeft(row: number[]): { newRow: number[]; scoreGained: number } {
-  const arr = row.filter(val => val !== 0);
-  const newRow: number[] = [];
-  let scoreGained = 0;
-
-  for (let i = 0; i < arr.length; i++) {
-    if (arr[i] === arr[i + 1]) {
-      newRow.push(arr[i] * 2);
-      scoreGained += arr[i] * 2;
-      i++;
-    } else {
-      newRow.push(arr[i]);
-    }
-  }
-
-  while (newRow.length < 4) {
-    newRow.push(0);
-  }
-
-  return { newRow, scoreGained };
-}
-
-function isGameOver2048(board: number[][]): boolean {
-  for (let r = 0; r < 4; r++) {
-    for (let c = 0; c < 4; c++) {
-      if (board[r][c] === 0) return false;
-      if (r < 3 && board[r][c] === board[r + 1][c]) return false;
-      if (c < 3 && board[r][c] === board[r][c + 1]) return false;
-    }
-  }
-  return true;
-}
-
-// ==========================================
-// GAME 2: WORDLE MECHANICS
-// ==========================================
-
-const TECH_WORDS = [
-  'PIVOT', 'SCALE', 'PITCH', 'ROUND', 'STAKE', 'FUNDS', 'AGENT', 'TOKEN',
-  'BUILD', 'ASSET', 'CLOUD', 'MODEL', 'VALUE', 'BOARD', 'ROAST', 'SHARE',
-  'SALES', 'MERGE', 'EQUITY', 'DEBTS', 'USERS', 'GROWTH', 'CACHE', 'CLICK'
-];
-
-// ==========================================
-// MAIN COMPONENT & HUB
-// ==========================================
+// =============================================
+// GAME HUB — Renders selection or active game
+// =============================================
 
 export function StartupClicker() {
-  const [activeGame, setActiveGame] = useState<'hub' | '2048' | 'wordle'>('hub');
+  const [activeGame, setActiveGame] = useState<'hub' | 'tictactoe' | 'memory' | 'snake'>('hub');
 
-  // Global Highscores
-  const [best2048, setBest2048] = useState(0);
-  const [wordleWins, setWordleWins] = useState(0);
+  return (
+    <div className="w-full rounded-2xl border border-[var(--border-bright)] bg-[var(--bg-card)] shadow-[var(--shadow-card)] relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(#1e1e38_1px,transparent_1px)] [background-size:20px_20px] opacity-[0.07] pointer-events-none" />
+
+      <AnimatePresence mode="wait">
+        {activeGame === 'hub' && (
+          <motion.div key="hub" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="relative z-10">
+            <GameHub onSelect={setActiveGame} />
+          </motion.div>
+        )}
+        {activeGame === 'tictactoe' && (
+          <motion.div key="ttt" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="relative z-10">
+            <TicTacToe onBack={() => setActiveGame('hub')} />
+          </motion.div>
+        )}
+        {activeGame === 'memory' && (
+          <motion.div key="mem" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="relative z-10">
+            <MemoryMatch onBack={() => setActiveGame('hub')} />
+          </motion.div>
+        )}
+        {activeGame === 'snake' && (
+          <motion.div key="snk" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="relative z-10">
+            <SnakeGame onBack={() => setActiveGame('hub')} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// =============================================
+// GAME HUB SELECTION SCREEN
+// =============================================
+
+function GameHub({ onSelect }: { onSelect: (g: 'tictactoe' | 'memory' | 'snake') => void }) {
+  return (
+    <div className="p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <Gamepad2 className="h-5 w-5 text-[var(--accent-primary)]" />
+        <h3 className="font-display text-sm font-bold uppercase tracking-wide text-[var(--text-primary)]">
+          Play while you wait
+        </h3>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { id: 'tictactoe' as const, emoji: '❌⭕', title: 'Tic Tac Toe', sub: 'Beat the AI' },
+          { id: 'memory' as const, emoji: '🧠', title: 'Memory Match', sub: 'Flip & match pairs' },
+          { id: 'snake' as const, emoji: '🐍', title: 'Snake', sub: 'Classic arcade' },
+        ].map((g) => (
+          <button
+            key={g.id}
+            onClick={() => onSelect(g.id)}
+            className="group flex flex-col items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-3 cursor-pointer transition-all hover:border-[var(--accent-primary)] hover:bg-[var(--bg-card-hover)] hover:-translate-y-0.5 hover:shadow-[0_0_20px_var(--accent-glow)] active:scale-95"
+          >
+            <span className="text-2xl">{g.emoji}</span>
+            <span className="text-[11px] font-bold text-[var(--text-primary)]">{g.title}</span>
+            <span className="text-[9px] text-[var(--text-muted)]">{g.sub}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// =============================================
+// GAME 1: TIC TAC TOE vs MINIMAX AI
+// =============================================
+
+type TTTBoard = (string | null)[];
+
+function checkWinner(b: TTTBoard): { winner: string | null; line: number[] | null } {
+  const lines = [
+    [0, 1, 2], [3, 4, 5], [6, 7, 8],
+    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+    [0, 4, 8], [2, 4, 6],
+  ];
+  for (const [a, b2, c] of lines) {
+    if (b[a] && b[a] === b[b2] && b[a] === b[c]) {
+      return { winner: b[a], line: [a, b2, c] };
+    }
+  }
+  return { winner: null, line: null };
+}
+
+function minimax(board: TTTBoard, isMax: boolean): number {
+  const { winner } = checkWinner(board);
+  if (winner === 'O') return 10;
+  if (winner === 'X') return -10;
+  if (board.every((c) => c !== null)) return 0;
+
+  if (isMax) {
+    let best = -Infinity;
+    for (let i = 0; i < 9; i++) {
+      if (!board[i]) {
+        board[i] = 'O';
+        best = Math.max(best, minimax(board, false));
+        board[i] = null;
+      }
+    }
+    return best;
+  } else {
+    let best = Infinity;
+    for (let i = 0; i < 9; i++) {
+      if (!board[i]) {
+        board[i] = 'X';
+        best = Math.min(best, minimax(board, true));
+        board[i] = null;
+      }
+    }
+    return best;
+  }
+}
+
+function getBestMove(board: TTTBoard): number {
+  // Add slight randomness on first move so AI isn't always perfect
+  const empty = board.filter((c) => c === null).length;
+  if (empty >= 8 && Math.random() > 0.5) {
+    const corners = [0, 2, 6, 8].filter((i) => !board[i]);
+    if (corners.length) return corners[Math.floor(Math.random() * corners.length)];
+  }
+
+  let bestVal = -Infinity;
+  let bestMove = -1;
+  for (let i = 0; i < 9; i++) {
+    if (!board[i]) {
+      board[i] = 'O';
+      const val = minimax(board, false);
+      board[i] = null;
+      if (val > bestVal) {
+        bestVal = val;
+        bestMove = i;
+      }
+    }
+  }
+  return bestMove;
+}
+
+function TicTacToe({ onBack }: { onBack: () => void }) {
+  const [board, setBoard] = useState<TTTBoard>(Array(9).fill(null));
+  const [gameOver, setGameOver] = useState(false);
+  const [winLine, setWinLine] = useState<number[] | null>(null);
+  const [stats, setStats] = useState({ wins: 0, losses: 0, draws: 0 });
+  const [message, setMessage] = useState("Your turn — you're X");
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setBest2048(Number(localStorage.getItem('ideaforge_2048_best') || 0));
-      setWordleWins(Number(localStorage.getItem('ideaforge_wordle_wins') || 0));
+      const saved = localStorage.getItem('ideaforge_ttt_stats');
+      if (saved) setStats(JSON.parse(saved));
     }
   }, []);
 
-  // ------------------------------------------
-  // 2048 STATE & EFFECTS
-  // ------------------------------------------
-  const [board, setBoard] = useState<number[][]>([
-    [0, 0, 0, 0],
-    [0, 0, 0, 0],
-    [0, 0, 0, 0],
-    [0, 0, 0, 0]
-  ]);
-  const [score2048, setScore2048] = useState(0);
-  const [gameEnded2048, setGameEnded2048] = useState(false);
-
-  const initGame2048 = () => {
-    let newBoard = [
-      [0, 0, 0, 0],
-      [0, 0, 0, 0],
-      [0, 0, 0, 0],
-      [0, 0, 0, 0]
-    ];
-    newBoard = spawnRandomTile(newBoard);
-    newBoard = spawnRandomTile(newBoard);
-    setBoard(newBoard);
-    setScore2048(0);
-    setGameEnded2048(false);
+  const saveStats = (s: typeof stats) => {
+    setStats(s);
+    localStorage.setItem('ideaforge_ttt_stats', JSON.stringify(s));
   };
 
-  const spawnRandomTile = (currentBoard: number[][]): number[][] => {
-    const emptyCells: { r: number; c: number }[] = [];
-    for (let r = 0; r < 4; r++) {
-      for (let c = 0; c < 4; c++) {
-        if (currentBoard[r][c] === 0) emptyCells.push({ r, c });
-      }
+  const handleClick = (idx: number) => {
+    if (board[idx] || gameOver) return;
+    const next = [...board];
+    next[idx] = 'X';
+    setBoard(next);
+
+    const result = checkWinner(next);
+    if (result.winner) {
+      setWinLine(result.line);
+      setGameOver(true);
+      setMessage('You won! 🎉');
+      saveStats({ ...stats, wins: stats.wins + 1 });
+      return;
     }
-    if (emptyCells.length === 0) return currentBoard;
-    const { r, c } = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-    const val = Math.random() > 0.1 ? 2 : 4;
-    const nextBoard = currentBoard.map(row => [...row]);
-    nextBoard[r][c] = val;
-    return nextBoard;
+    if (next.every((c) => c !== null)) {
+      setGameOver(true);
+      setMessage("It's a draw!");
+      saveStats({ ...stats, draws: stats.draws + 1 });
+      return;
+    }
+
+    setMessage('AI is thinking...');
+    // Small delay for AI "thinking" feel
+    setTimeout(() => {
+      const aiMove = getBestMove([...next]);
+      if (aiMove >= 0) {
+        next[aiMove] = 'O';
+        setBoard([...next]);
+        const aiResult = checkWinner(next);
+        if (aiResult.winner) {
+          setWinLine(aiResult.line);
+          setGameOver(true);
+          setMessage('AI wins! Try again');
+          saveStats({ ...stats, losses: stats.losses + 1 });
+        } else if (next.every((c) => c !== null)) {
+          setGameOver(true);
+          setMessage("It's a draw!");
+          saveStats({ ...stats, draws: stats.draws + 1 });
+        } else {
+          setMessage("Your turn — you're X");
+        }
+      }
+    }, 300);
   };
 
-  const handle2048Move = (direction: 'left' | 'right' | 'up' | 'down') => {
-    if (gameEnded2048) return;
-
-    let moved = false;
-    let scoreGained = 0;
-    let nextBoard: number[][] = [];
-
-    if (direction === 'left') {
-      nextBoard = board.map(row => {
-        const { newRow, scoreGained: sg } = slideRowLeft(row);
-        if (JSON.stringify(newRow) !== JSON.stringify(row)) moved = true;
-        scoreGained += sg;
-        return newRow;
-      });
-    } else if (direction === 'right') {
-      const reversed = reverseRows(board);
-      const slided = reversed.map(row => {
-        const { newRow, scoreGained: sg } = slideRowLeft(row);
-        scoreGained += sg;
-        return newRow;
-      });
-      nextBoard = reverseRows(slided);
-      if (JSON.stringify(nextBoard) !== JSON.stringify(board)) moved = true;
-    } else if (direction === 'up') {
-      const transposed = transpose(board);
-      const slided = transposed.map(row => {
-        const { newRow, scoreGained: sg } = slideRowLeft(row);
-        scoreGained += sg;
-        return newRow;
-      });
-      nextBoard = transpose(slided);
-      if (JSON.stringify(nextBoard) !== JSON.stringify(board)) moved = true;
-    } else if (direction === 'down') {
-      const transposed = transpose(board);
-      const reversed = reverseRows(transposed);
-      const slided = reversed.map(row => {
-        const { newRow, scoreGained: sg } = slideRowLeft(row);
-        scoreGained += sg;
-        return newRow;
-      });
-      const unReversed = reverseRows(slided);
-      nextBoard = transpose(unReversed);
-      if (JSON.stringify(nextBoard) !== JSON.stringify(board)) moved = true;
-    }
-
-    if (moved) {
-      const boardWithNewTile = spawnRandomTile(nextBoard);
-      setBoard(boardWithNewTile);
-      const newScore = score2048 + scoreGained;
-      setScore2048(newScore);
-
-      if (newScore > best2048) {
-        setBest2048(newScore);
-        localStorage.setItem('ideaforge_2048_best', String(newScore));
-      }
-
-      if (isGameOver2048(boardWithNewTile)) {
-        setGameEnded2048(true);
-        toast.error('Game Over! No moves left.');
-      }
-    }
-  };
-
-  // Keyboard handler for 2048
-  useEffect(() => {
-    if (activeGame !== '2048') return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (['ArrowUp', 'KeyW'].includes(e.code)) {
-        e.preventDefault();
-        handle2048Move('up');
-      } else if (['ArrowDown', 'KeyS'].includes(e.code)) {
-        e.preventDefault();
-        handle2048Move('down');
-      } else if (['ArrowLeft', 'KeyA'].includes(e.code)) {
-        e.preventDefault();
-        handle2048Move('left');
-      } else if (['ArrowRight', 'KeyD'].includes(e.code)) {
-        e.preventDefault();
-        handle2048Move('right');
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeGame, board, score2048, gameEnded2048]);
-
-  // ------------------------------------------
-  // WORDLE STATE & EFFECTS
-  // ------------------------------------------
-  const [secretWord, setSecretWord] = useState('');
-  const [wordleBoard, setWordleBoard] = useState<string[]>(Array(6).fill(''));
-  const [currentRow, setCurrentRow] = useState(0);
-  const [wordleStatus, setWordleStatus] = useState<'playing' | 'won' | 'lost'>('playing');
-
-  const initWordle = () => {
-    const word = TECH_WORDS[Math.floor(Math.random() * TECH_WORDS.length)];
-    setSecretWord(word);
-    setWordleBoard(Array(6).fill(''));
-    setCurrentRow(0);
-    setWordleStatus('playing');
-  };
-
-  const handleWordleKeyPress = (key: string) => {
-    if (wordleStatus !== 'playing') return;
-
-    const currentGuess = wordleBoard[currentRow];
-
-    if (key === 'ENTER') {
-      if (currentGuess.length < 5) {
-        toast.warning('Word too short!');
-        return;
-      }
-
-      // Check win or lose
-      if (currentGuess === secretWord) {
-        setWordleStatus('won');
-        const nextWins = wordleWins + 1;
-        setWordleWins(nextWins);
-        localStorage.setItem('ideaforge_wordle_wins', String(nextWins));
-        toast.success(`🎉 Brilliant! You guessed it in ${currentRow + 1} tries!`);
-      } else if (currentRow === 5) {
-        setWordleStatus('lost');
-        toast.error(`Game Over! The word was ${secretWord}`);
-      } else {
-        setCurrentRow(prev => prev + 1);
-      }
-    } else if (key === 'BACKSPACE') {
-      setWordleBoard(prev => {
-        const next = [...prev];
-        next[currentRow] = currentGuess.slice(0, -1);
-        return next;
-      });
-    } else if (/^[A-Z]$/.test(key) && currentGuess.length < 5) {
-      setWordleBoard(prev => {
-        const next = [...prev];
-        next[currentRow] = currentGuess + key;
-        return next;
-      });
-    }
-  };
-
-  // Keyboard handler for Wordle
-  useEffect(() => {
-    if (activeGame !== 'wordle') return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const key = e.key.toUpperCase();
-      if (key === 'ENTER' || key === 'BACKSPACE') {
-        e.preventDefault();
-        handleWordleKeyPress(key);
-      } else if (/^[A-Z]$/.test(key)) {
-        handleWordleKeyPress(key);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeGame, wordleBoard, currentRow, wordleStatus, secretWord]);
-
-  // Color mapping helper for Wordle letter grid cell
-  const getCellColor = (rowIdx: number, charIdx: number, char: string) => {
-    if (rowIdx >= currentRow) return 'border-[var(--border)] bg-transparent text-[var(--text-primary)]';
-    
-    // Evaluated rows
-    const secretLetters = secretWord.split('');
-    const charUpper = char.toUpperCase();
-
-    if (secretWord[charIdx] === charUpper) {
-      return 'border-[var(--success)] bg-[var(--success-bg)] text-[var(--success)] font-bold';
-    }
-
-    if (secretLetters.includes(charUpper)) {
-      return 'border-[var(--warning)] bg-[var(--warning-bg)] text-[var(--warning)] font-bold';
-    }
-
-    return 'border-[var(--border-bright)] bg-[var(--bg-elevated)] text-[var(--text-muted)]';
+  const reset = () => {
+    setBoard(Array(9).fill(null));
+    setGameOver(false);
+    setWinLine(null);
+    setMessage("Your turn — you're X");
   };
 
   return (
-    <div className="w-full flex flex-col gap-4 rounded-2xl border border-[var(--border-bright)] bg-[var(--bg-card)] p-5 shadow-[var(--shadow-card)] relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute inset-0 bg-[radial-gradient(#1e1e38_1px,transparent_1px)] [background-size:20px_20px] opacity-10 pointer-events-none" />
+    <div className="p-5">
+      <div className="flex items-center justify-between mb-4">
+        <button onClick={onBack} className="text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer">← Back</button>
+        <div className="flex items-center gap-3 text-[10px] font-mono">
+          <span className="text-[var(--success)]">W:{stats.wins}</span>
+          <span className="text-[var(--danger)]">L:{stats.losses}</span>
+          <span className="text-[var(--text-muted)]">D:{stats.draws}</span>
+        </div>
+        <button onClick={reset} className="p-1.5 rounded-lg border border-[var(--border-bright)] hover:border-[var(--accent-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition"><RotateCcw className="h-3.5 w-3.5" /></button>
+      </div>
 
-      {/* GAME ARCADE HUB SCREEN */}
-      {activeGame === 'hub' && (
-        <div className="text-center py-6 z-10 flex flex-col items-center">
-          <Gamepad2 className="h-12 w-12 text-[var(--accent-primary)] mb-3 animate-bounce" />
-          <h2 className="font-display text-lg font-black tracking-wide uppercase text-[var(--text-primary)]">
-            IdeaForge Arcade
-          </h2>
-          <p className="text-xs text-[var(--text-secondary)] mt-1 max-w-sm">
-            Play classic, professional games while the AI model builds your startup components.
-          </p>
+      <p className="text-center text-xs text-[var(--text-secondary)] mb-3">{message}</p>
 
-          {/* Game Selection Cards */}
-          <div className="grid grid-cols-2 gap-4 w-full mt-8 max-w-md">
-            {/* 2048 Card */}
+      <div className="grid grid-cols-3 gap-2 w-[210px] mx-auto">
+        {board.map((cell, idx) => (
+          <button
+            key={idx}
+            onClick={() => handleClick(idx)}
+            disabled={!!cell || gameOver}
+            className={`h-[66px] w-[66px] rounded-xl border-2 text-2xl font-black flex items-center justify-center cursor-pointer transition-all duration-150 active:scale-90 select-none ${
+              winLine?.includes(idx)
+                ? 'border-[var(--success)] bg-[var(--success-bg)] shadow-[0_0_12px_rgba(34,197,94,0.3)]'
+                : cell
+                ? 'border-[var(--border-bright)] bg-[var(--bg-elevated)]'
+                : 'border-[var(--border)] bg-[var(--bg-secondary)] hover:border-[var(--accent-primary)] hover:bg-[var(--bg-card-hover)]'
+            }`}
+          >
+            {cell === 'X' && <span className="text-[var(--accent-primary)]">✕</span>}
+            {cell === 'O' && <span className="text-[var(--danger)]">◯</span>}
+          </button>
+        ))}
+      </div>
+
+      {gameOver && (
+        <div className="mt-4 text-center">
+          <button onClick={reset} className="text-xs font-bold text-[var(--accent-primary)] hover:underline cursor-pointer">
+            Play again →
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// =============================================
+// GAME 2: MEMORY CARD MATCH
+// =============================================
+
+const MEMORY_ICONS = ['🚀', '💡', '⚡', '🎯', '🔥', '💎', '🦄', '🧠'];
+
+function shuffleArray<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function MemoryMatch({ onBack }: { onBack: () => void }) {
+  const [cards, setCards] = useState<string[]>([]);
+  const [flipped, setFlipped] = useState<number[]>([]);
+  const [matched, setMatched] = useState<number[]>([]);
+  const [moves, setMoves] = useState(0);
+  const [bestScore, setBestScore] = useState(0);
+  const lockRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setBestScore(Number(localStorage.getItem('ideaforge_memory_best') || 0));
+    }
+    initGame();
+  }, []);
+
+  const initGame = () => {
+    setCards(shuffleArray([...MEMORY_ICONS, ...MEMORY_ICONS]));
+    setFlipped([]);
+    setMatched([]);
+    setMoves(0);
+    lockRef.current = false;
+  };
+
+  const handleFlip = (idx: number) => {
+    if (lockRef.current || flipped.includes(idx) || matched.includes(idx)) return;
+
+    const next = [...flipped, idx];
+    setFlipped(next);
+
+    if (next.length === 2) {
+      setMoves((m) => m + 1);
+      lockRef.current = true;
+
+      if (cards[next[0]] === cards[next[1]]) {
+        // Match found
+        setTimeout(() => {
+          setMatched((prev) => [...prev, next[0], next[1]]);
+          setFlipped([]);
+          lockRef.current = false;
+
+          // Check win (16 cards = 8 pairs = 16 matched)
+          const totalMatched = matched.length + 2;
+          if (totalMatched === 16) {
+            const finalMoves = moves + 1;
+            if (bestScore === 0 || finalMoves < bestScore) {
+              setBestScore(finalMoves);
+              localStorage.setItem('ideaforge_memory_best', String(finalMoves));
+            }
+            toast.success(`🎉 All matched in ${finalMoves} moves!`);
+          }
+        }, 400);
+      } else {
+        // No match — flip back
+        setTimeout(() => {
+          setFlipped([]);
+          lockRef.current = false;
+        }, 800);
+      }
+    }
+  };
+
+  return (
+    <div className="p-5">
+      <div className="flex items-center justify-between mb-4">
+        <button onClick={onBack} className="text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer">← Back</button>
+        <div className="flex items-center gap-3 text-[10px] font-mono">
+          <span className="text-[var(--text-primary)]">Moves: {moves}</span>
+          {bestScore > 0 && <span className="text-[var(--success)]">Best: {bestScore}</span>}
+        </div>
+        <button onClick={initGame} className="p-1.5 rounded-lg border border-[var(--border-bright)] hover:border-[var(--accent-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition"><RotateCcw className="h-3.5 w-3.5" /></button>
+      </div>
+
+      <div className="grid grid-cols-4 gap-2 max-w-[260px] mx-auto">
+        {cards.map((icon, idx) => {
+          const isFlipped = flipped.includes(idx);
+          const isMatched = matched.includes(idx);
+          const showFace = isFlipped || isMatched;
+
+          return (
             <button
-              onClick={() => {
-                setActiveGame('2048');
-                initGame2048();
-              }}
-              className="flex flex-col items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 text-center cursor-pointer transition-all hover:border-[var(--accent-primary)] hover:bg-[var(--bg-card-hover)] hover:-translate-y-1"
+              key={idx}
+              onClick={() => handleFlip(idx)}
+              className={`h-[56px] w-[56px] rounded-xl border-2 text-xl flex items-center justify-center cursor-pointer transition-all duration-200 select-none active:scale-90 ${
+                isMatched
+                  ? 'border-[var(--success)]/40 bg-[var(--success-bg)] scale-95 opacity-60'
+                  : isFlipped
+                  ? 'border-[var(--accent-primary)] bg-[var(--bg-elevated)] shadow-[0_0_10px_var(--accent-glow)]'
+                  : 'border-[var(--border)] bg-gradient-to-br from-[var(--bg-secondary)] to-[var(--bg-elevated)] hover:border-[var(--accent-primary)] hover:shadow-[0_0_8px_var(--accent-glow)]'
+              }`}
             >
-              <div className="text-3xl font-extrabold text-[#7C6EFA]">2048</div>
-              <div className="mt-3">
-                <span className="text-xs font-bold text-[var(--text-primary)]">Slide & Merge</span>
-                <p className="text-[10px] text-[var(--text-muted)] mt-1">Combine tiles to reach 2048</p>
-              </div>
-              <div className="mt-4 flex items-center gap-1 text-[10px] text-[var(--text-secondary)]">
-                <Trophy className="h-3 w-3 text-yellow-500" />
-                <span>Best: {best2048}</span>
-              </div>
+              {showFace ? (
+                <motion.span initial={{ rotateY: 90 }} animate={{ rotateY: 0 }} transition={{ duration: 0.2 }}>
+                  {icon}
+                </motion.span>
+              ) : (
+                <span className="text-[var(--text-muted)] text-xs font-bold">?</span>
+              )}
             </button>
+          );
+        })}
+      </div>
 
-            {/* Wordle Card */}
+      {matched.length === 16 && (
+        <div className="mt-4 text-center">
+          <button onClick={initGame} className="text-xs font-bold text-[var(--accent-primary)] hover:underline cursor-pointer">
+            Play again →
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// =============================================
+// GAME 3: SNAKE
+// =============================================
+
+const GRID_SIZE = 15;
+const INITIAL_SPEED = 150;
+
+type Point = { x: number; y: number };
+type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
+
+function SnakeGame({ onBack }: { onBack: () => void }) {
+  const [snake, setSnake] = useState<Point[]>([{ x: 7, y: 7 }]);
+  const [food, setFood] = useState<Point>({ x: 3, y: 3 });
+  const [direction, setDirection] = useState<Direction>('RIGHT');
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isDead, setIsDead] = useState(false);
+  const [score, setScore] = useState(0);
+  const [highScore, setHighScore] = useState(0);
+
+  const dirRef = useRef<Direction>('RIGHT');
+  const snakeRef = useRef(snake);
+  const foodRef = useRef(food);
+  const gameLoopRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    snakeRef.current = snake;
+  }, [snake]);
+
+  useEffect(() => {
+    foodRef.current = food;
+  }, [food]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setHighScore(Number(localStorage.getItem('ideaforge_snake_best') || 0));
+    }
+  }, []);
+
+  const spawnFood = useCallback((currentSnake: Point[]): Point => {
+    let pos: Point;
+    do {
+      pos = {
+        x: Math.floor(Math.random() * GRID_SIZE),
+        y: Math.floor(Math.random() * GRID_SIZE),
+      };
+    } while (currentSnake.some((s) => s.x === pos.x && s.y === pos.y));
+    return pos;
+  }, []);
+
+  const startGame = () => {
+    const initialSnake = [{ x: 7, y: 7 }];
+    const initialFood = spawnFood(initialSnake);
+    setSnake(initialSnake);
+    snakeRef.current = initialSnake;
+    setFood(initialFood);
+    foodRef.current = initialFood;
+    setDirection('RIGHT');
+    dirRef.current = 'RIGHT';
+    setScore(0);
+    setIsDead(false);
+    setIsPlaying(true);
+  };
+
+  // Game loop
+  useEffect(() => {
+    if (!isPlaying) return;
+
+    const tick = () => {
+      const currentSnake = snakeRef.current;
+      const currentFood = foodRef.current;
+      const dir = dirRef.current;
+
+      const head = { ...currentSnake[0] };
+      if (dir === 'UP') head.y -= 1;
+      if (dir === 'DOWN') head.y += 1;
+      if (dir === 'LEFT') head.x -= 1;
+      if (dir === 'RIGHT') head.x += 1;
+
+      // Wall collision
+      if (head.x < 0 || head.x >= GRID_SIZE || head.y < 0 || head.y >= GRID_SIZE) {
+        setIsPlaying(false);
+        setIsDead(true);
+        const finalScore = currentSnake.length - 1;
+        if (finalScore > Number(localStorage.getItem('ideaforge_snake_best') || 0)) {
+          setHighScore(finalScore);
+          localStorage.setItem('ideaforge_snake_best', String(finalScore));
+        }
+        return;
+      }
+
+      // Self collision
+      if (currentSnake.some((s) => s.x === head.x && s.y === head.y)) {
+        setIsPlaying(false);
+        setIsDead(true);
+        const finalScore = currentSnake.length - 1;
+        if (finalScore > Number(localStorage.getItem('ideaforge_snake_best') || 0)) {
+          setHighScore(finalScore);
+          localStorage.setItem('ideaforge_snake_best', String(finalScore));
+        }
+        return;
+      }
+
+      const newSnake = [head, ...currentSnake];
+
+      // Eating food
+      if (head.x === currentFood.x && head.y === currentFood.y) {
+        const newFood = spawnFood(newSnake);
+        setFood(newFood);
+        foodRef.current = newFood;
+        setScore(newSnake.length - 1);
+      } else {
+        newSnake.pop();
+      }
+
+      setSnake(newSnake);
+      snakeRef.current = newSnake;
+    };
+
+    gameLoopRef.current = setInterval(tick, INITIAL_SPEED);
+    return () => {
+      if (gameLoopRef.current) clearInterval(gameLoopRef.current);
+    };
+  }, [isPlaying, spawnFood]);
+
+  // Keyboard controls
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      const d = dirRef.current;
+      if ((e.code === 'ArrowUp' || e.code === 'KeyW') && d !== 'DOWN') {
+        e.preventDefault();
+        dirRef.current = 'UP';
+        setDirection('UP');
+      } else if ((e.code === 'ArrowDown' || e.code === 'KeyS') && d !== 'UP') {
+        e.preventDefault();
+        dirRef.current = 'DOWN';
+        setDirection('DOWN');
+      } else if ((e.code === 'ArrowLeft' || e.code === 'KeyA') && d !== 'RIGHT') {
+        e.preventDefault();
+        dirRef.current = 'LEFT';
+        setDirection('LEFT');
+      } else if ((e.code === 'ArrowRight' || e.code === 'KeyD') && d !== 'LEFT') {
+        e.preventDefault();
+        dirRef.current = 'RIGHT';
+        setDirection('RIGHT');
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, []);
+
+  const changeDir = (d: Direction) => {
+    const cur = dirRef.current;
+    if (d === 'UP' && cur !== 'DOWN') { dirRef.current = d; setDirection(d); }
+    if (d === 'DOWN' && cur !== 'UP') { dirRef.current = d; setDirection(d); }
+    if (d === 'LEFT' && cur !== 'RIGHT') { dirRef.current = d; setDirection(d); }
+    if (d === 'RIGHT' && cur !== 'LEFT') { dirRef.current = d; setDirection(d); }
+  };
+
+  const cellSize = `${100 / GRID_SIZE}%`;
+
+  return (
+    <div className="p-5">
+      <div className="flex items-center justify-between mb-3">
+        <button onClick={onBack} className="text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer">← Back</button>
+        <div className="flex items-center gap-3 text-[10px] font-mono">
+          <span className="text-[var(--text-primary)]">Score: {score}</span>
+          <span className="text-[var(--success)]">Best: {highScore}</span>
+        </div>
+        <button onClick={startGame} className="p-1.5 rounded-lg border border-[var(--border-bright)] hover:border-[var(--accent-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition"><RotateCcw className="h-3.5 w-3.5" /></button>
+      </div>
+
+      {/* Snake Grid */}
+      <div className="relative w-[270px] h-[270px] mx-auto rounded-xl border-2 border-[var(--border-bright)] bg-[var(--bg-secondary)] overflow-hidden">
+        {/* Food */}
+        <div
+          className="absolute rounded-full bg-[var(--danger)] shadow-[0_0_8px_var(--danger)] transition-all duration-100"
+          style={{
+            width: cellSize,
+            height: cellSize,
+            left: `${(food.x / GRID_SIZE) * 100}%`,
+            top: `${(food.y / GRID_SIZE) * 100}%`,
+          }}
+        />
+
+        {/* Snake segments */}
+        {snake.map((seg, i) => (
+          <div
+            key={i}
+            className={`absolute rounded-sm transition-all duration-75 ${
+              i === 0
+                ? 'bg-[var(--accent-primary)] shadow-[0_0_6px_var(--accent-primary)] z-10'
+                : 'bg-[var(--accent-primary)]/70'
+            }`}
+            style={{
+              width: cellSize,
+              height: cellSize,
+              left: `${(seg.x / GRID_SIZE) * 100}%`,
+              top: `${(seg.y / GRID_SIZE) * 100}%`,
+            }}
+          />
+        ))}
+
+        {/* Start / Game Over overlay */}
+        {!isPlaying && (
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center gap-2 z-20">
+            {isDead ? (
+              <>
+                <p className="text-sm font-bold text-[var(--danger)]">Game Over!</p>
+                <p className="text-xs text-[var(--text-secondary)]">Score: {score}</p>
+              </>
+            ) : (
+              <p className="text-sm font-bold text-[var(--text-primary)]">🐍 Snake</p>
+            )}
             <button
-              onClick={() => {
-                setActiveGame('wordle');
-                initWordle();
-              }}
-              className="flex flex-col items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 text-center cursor-pointer transition-all hover:border-[var(--accent-primary)] hover:bg-[var(--bg-card-hover)] hover:-translate-y-1"
+              onClick={startGame}
+              className="mt-1 rounded-lg bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] px-4 py-1.5 text-xs font-semibold text-[var(--text-primary)] cursor-pointer transition-all active:scale-95"
             >
-              <div className="text-3xl font-bold text-[#A855F7] tracking-wider font-mono">W-O-R-D</div>
-              <div className="mt-3">
-                <span className="text-xs font-bold text-[var(--text-primary)]">Tech Wordle</span>
-                <p className="text-[10px] text-[var(--text-muted)] mt-1">Guess startup-themed words</p>
-              </div>
-              <div className="mt-4 flex items-center gap-1 text-[10px] text-[var(--text-secondary)]">
-                <Trophy className="h-3 w-3 text-yellow-500" />
-                <span>Wins: {wordleWins}</span>
-              </div>
+              {isDead ? 'Play Again' : 'Start Game'}
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* 2048 GAMEPLAY */}
-      {activeGame === '2048' && (
-        <div className="flex flex-col items-center z-10">
-          <div className="flex w-full items-center justify-between border-b border-[var(--border)] pb-3.5 mb-4">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setActiveGame('hub')}
-                className="text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
-              >
-                ← Arcade Hub
-              </button>
-              <span className="text-xs font-bold text-[var(--text-primary)]">/ 2048 Puzzle</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <p className="text-[9px] text-[var(--text-muted)]">SCORE</p>
-                <p className="text-xs font-mono font-bold text-[var(--success)]">{score2048}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[9px] text-[var(--text-muted)]">BEST</p>
-                <p className="text-xs font-mono font-bold text-[var(--text-primary)]">{best2048}</p>
-              </div>
-              <button
-                onClick={initGame2048}
-                className="rounded-lg p-1.5 border border-[var(--border-bright)] hover:border-[var(--accent-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition"
-                title="Restart"
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
+      {/* Mobile controls */}
+      <div className="grid grid-cols-3 gap-1.5 mt-3 w-28 mx-auto md:hidden">
+        <div />
+        <button onClick={() => changeDir('UP')} className="bg-[var(--bg-elevated)] active:bg-[var(--border-bright)] border border-[var(--border)] rounded-lg py-2 text-center text-xs font-bold cursor-pointer select-none">▲</button>
+        <div />
+        <button onClick={() => changeDir('LEFT')} className="bg-[var(--bg-elevated)] active:bg-[var(--border-bright)] border border-[var(--border)] rounded-lg py-2 text-center text-xs font-bold cursor-pointer select-none">◀</button>
+        <button onClick={() => changeDir('DOWN')} className="bg-[var(--bg-elevated)] active:bg-[var(--border-bright)] border border-[var(--border)] rounded-lg py-2 text-center text-xs font-bold cursor-pointer select-none">▼</button>
+        <button onClick={() => changeDir('RIGHT')} className="bg-[var(--bg-elevated)] active:bg-[var(--border-bright)] border border-[var(--border)] rounded-lg py-2 text-center text-xs font-bold cursor-pointer select-none">▶</button>
+      </div>
 
-          {/* 2048 Board */}
-          <div className="relative p-2 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] w-[280px] h-[280px] grid grid-cols-4 grid-rows-4 gap-2">
-            {board.map((row, rIdx) =>
-              row.map((val, cIdx) => (
-                <div
-                  key={`${rIdx}-${cIdx}`}
-                  className={`flex items-center justify-center rounded-xl text-lg font-black transition-all duration-100 select-none ${
-                    val === 0
-                      ? 'bg-[var(--bg-elevated)]/40 opacity-40'
-                      : val === 2
-                      ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)]'
-                      : val === 4
-                      ? 'bg-[var(--border-bright)] text-[var(--text-primary)]'
-                      : val === 8
-                      ? 'bg-[#EAB308]/20 border border-[#EAB308]/40 text-[#EAB308]'
-                      : val === 16
-                      ? 'bg-[#F97316]/20 border border-[#F97316]/40 text-[#F97316]'
-                      : val === 32
-                      ? 'bg-[#EF4444]/20 border border-[#EF4444]/40 text-[#EF4444]'
-                      : val === 64
-                      ? 'bg-[#EC4899]/20 border border-[#EC4899]/40 text-[#EC4899]'
-                      : val === 128
-                      ? 'bg-[#A855F7]/20 border border-[#A855F7]/40 text-[#A855F7]'
-                      : val === 256
-                      ? 'bg-[#6366F1]/20 border border-[#6366F1]/40 text-[#6366F1]'
-                      : val === 512
-                      ? 'bg-[#3B82F6]/20 border border-[#3B82F6]/40 text-[#3B82F6]'
-                      : val === 1024
-                      ? 'bg-[#10B981]/20 border border-[#10B981]/40 text-[#10B981]'
-                      : 'bg-[#7C6EFA] text-[var(--text-primary)] shadow-[0_0_15px_rgba(124,110,250,0.5)]'
-                  }`}
-                >
-                  {val > 0 ? val : ''}
-                </div>
-              ))
-            )}
-
-            {gameEnded2048 && (
-              <div className="absolute inset-0 bg-black/80 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center p-4">
-                <AlertCircle className="h-10 w-10 text-[var(--danger)] mb-2 animate-pulse" />
-                <h4 className="font-bold text-[var(--text-primary)]">Game Over</h4>
-                <p className="text-xs text-[var(--text-secondary)] mt-1">Final Score: {score2048}</p>
-                <button
-                  type="button"
-                  className="mt-4 rounded-lg bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] px-4 py-1.5 text-xs font-semibold text-[var(--text-primary)] cursor-pointer transition-all duration-150 active:scale-95"
-                  onClick={initGame2048}
-                >
-                  Play Again
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="mt-4 flex flex-col items-center text-[10px] text-[var(--text-secondary)] leading-relaxed">
-            <div className="flex items-center gap-1">
-              <Keyboard className="h-3.5 w-3.5 text-[var(--accent-primary)]" />
-              <span>Use <strong>Arrow keys</strong> or <strong>WASD</strong> to play</span>
-            </div>
-            {/* Virtual Controls for Mobile */}
-            <div className="grid grid-cols-3 gap-1.5 mt-3.5 w-32 md:hidden">
-              <div />
-              <button onClick={() => handle2048Move('up')} className="bg-[var(--bg-elevated)] active:bg-[var(--border-bright)] border border-[var(--border)] rounded-lg py-2 text-center text-xs font-bold">▲</button>
-              <div />
-              <button onClick={() => handle2048Move('left')} className="bg-[var(--bg-elevated)] active:bg-[var(--border-bright)] border border-[var(--border)] rounded-lg py-2 text-center text-xs font-bold">◀</button>
-              <button onClick={() => handle2048Move('down')} className="bg-[var(--bg-elevated)] active:bg-[var(--border-bright)] border border-[var(--border)] rounded-lg py-2 text-center text-xs font-bold">▼</button>
-              <button onClick={() => handle2048Move('right')} className="bg-[var(--bg-elevated)] active:bg-[var(--border-bright)] border border-[var(--border)] rounded-lg py-2 text-center text-xs font-bold">▶</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* WORDLE GAMEPLAY */}
-      {activeGame === 'wordle' && (
-        <div className="flex flex-col items-center z-10">
-          <div className="flex w-full items-center justify-between border-b border-[var(--border)] pb-3.5 mb-4">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setActiveGame('hub')}
-                className="text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
-              >
-                ← Arcade Hub
-              </button>
-              <span className="text-xs font-bold text-[var(--text-primary)]">/ Tech Wordle</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-[var(--text-secondary)]">Wins: {wordleWins}</span>
-              <button
-                onClick={initWordle}
-                className="rounded-lg p-1.5 border border-[var(--border-bright)] hover:border-[var(--accent-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition"
-                title="Restart"
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Wordle Rows */}
-          <div className="flex flex-col gap-1.5 mb-5 select-none">
-            {wordleBoard.map((rowText, rIdx) => {
-              const paddedRow = rowText.padEnd(5, ' ');
-              return (
-                <div key={rIdx} className="flex gap-1.5">
-                  {paddedRow.split('').map((char, cIdx) => (
-                    <div
-                      key={cIdx}
-                      className={`h-11 w-11 flex items-center justify-center rounded-xl border-2 text-lg font-black uppercase transition-all duration-300 ${getCellColor(
-                        rIdx,
-                        cIdx,
-                        char
-                      )}`}
-                    >
-                      {char !== ' ' ? char : ''}
-                    </div>
-                  ))}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* virtual Keyboard Panel */}
-          <div className="w-full max-w-sm flex flex-col gap-1">
-            {[
-              ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
-              ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-              ['ENTER', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'BACKSPACE']
-            ].map((rowKeys, rIdx) => (
-              <div key={rIdx} className="flex justify-center gap-1">
-                {rowKeys.map(key => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => handleWordleKeyPress(key)}
-                    className={`h-9 items-center justify-center rounded-lg font-mono font-bold text-xs cursor-pointer transition-colors active:bg-[var(--border-bright)] select-none ${
-                      key === 'ENTER' || key === 'BACKSPACE'
-                        ? 'px-2 bg-[var(--bg-elevated)] border border-[var(--border)] text-[var(--text-primary)]'
-                        : 'w-7.5 bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    {key === 'BACKSPACE' ? '⌫' : key}
-                  </button>
-                ))}
-              </div>
-            ))}
-          </div>
-
-          {/* End status Overlay */}
-          {wordleStatus !== 'playing' && (
-            <div className="mt-4 flex flex-col items-center bg-[var(--bg-secondary)] border border-[var(--border)] p-3 rounded-xl w-full text-center">
-              <p className="text-xs font-semibold text-[var(--text-primary)]">
-                {wordleStatus === 'won' ? '🎉 You Guessed It!' : `😞 Secret word was: ${secretWord}`}
-              </p>
-              <button
-                onClick={initWordle}
-                className="mt-2 text-[10px] font-bold text-[var(--accent-primary)] hover:underline cursor-pointer"
-              >
-                Play next word →
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+      <p className="mt-2 text-center text-[9px] text-[var(--text-muted)] hidden md:block">Arrow keys or WASD to move</p>
     </div>
   );
 }

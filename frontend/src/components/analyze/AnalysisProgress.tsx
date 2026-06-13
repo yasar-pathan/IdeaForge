@@ -34,7 +34,14 @@ export function AnalysisProgress({ sessionId }: { sessionId: string }) {
   } = useSessionStatus(sessionId);
 
   const [etaSeconds, setEtaSeconds] = useState(0);
-  const [activeTab, setActiveTab] = useState<'trivia' | 'game'>('trivia');
+  const [showGames, setShowGames] = useState(false);
+
+  // Auto-show game hub after 8 seconds of processing
+  useEffect(() => {
+    if (status !== 'processing') { setShowGames(false); return; }
+    const t = setTimeout(() => setShowGames(true), 8000);
+    return () => clearTimeout(t);
+  }, [status]);
 
   // Sound triggers
   const prevCompletedCount = useRef(completedModules.length);
@@ -148,35 +155,26 @@ export function AnalysisProgress({ sessionId }: { sessionId: string }) {
 
       {/* Interactive Activity Section */}
       {status === 'processing' && (
-        <div className="mt-6 w-full max-w-xl flex flex-col gap-3 slide-up">
-          <div className="flex justify-center gap-1.5 p-1 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] self-center">
-            <button
-              type="button"
-              onClick={() => setActiveTab('trivia')}
-              className={`rounded-lg px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === 'trivia'
-                  ? 'bg-[var(--accent-primary)] text-[var(--text-primary)] shadow-md'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              💡 Trivia Facts
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('game')}
-              className={`rounded-lg px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === 'game'
-                  ? 'bg-[var(--accent-primary)] text-[var(--text-primary)] shadow-md'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              🎮 Startup Clicker
-            </button>
-          </div>
+        <div className="mt-6 w-full max-w-xl flex flex-col gap-4 slide-up">
+          {/* Trivia always visible */}
+          <SmartFactsCarousel />
 
-          <div className="w-full">
-            {activeTab === 'trivia' ? <SmartFactsCarousel /> : <StartupClicker />}
-          </div>
+          {/* Game hub auto-appears after 8s */}
+          {showGames && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-sm">🎮</span>
+                <span className="text-xs font-bold text-[var(--text-secondary)]">
+                  While you wait — play a quick game
+                </span>
+              </div>
+              <StartupClicker />
+            </motion.div>
+          )}
         </div>
       )}
 
