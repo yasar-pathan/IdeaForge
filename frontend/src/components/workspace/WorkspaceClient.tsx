@@ -67,6 +67,29 @@ export function WorkspaceClient({ sessionId }: { sessionId: string }) {
         if (!res.ok) {
           throw new Error(body.error || 'Generation failed');
         }
+
+        // Poll for completion
+        let completed = false;
+        const maxPolls = 40; // 40 * 1.5s = 60s max poll
+        for (let poll = 0; poll < maxPolls; poll++) {
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+          const checkRes = await fetch(`/api/sessions/${sessionId}`, { credentials: 'include' });
+          if (!checkRes.ok) continue;
+          
+          const checkData = await checkRes.json();
+          const checkSession = checkData?.session as Record<string, unknown> | null;
+          const checkStatus = checkData?.module_status as ModuleStatusRow | null;
+          
+          if (isDone(moduleId, checkSession, checkStatus)) {
+            completed = true;
+            break;
+          }
+        }
+
+        if (!completed) {
+          throw new Error('Generation is taking longer than expected. Please refresh the page in a moment to check.');
+        }
+
         toast.success(`${WORKSPACE_MODULE_ROWS.find((r) => r.id === moduleId)?.label ?? 'Module'} ready`);
         await refetch();
       } catch (e) {

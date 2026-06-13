@@ -42,9 +42,15 @@ export async function POST(
       return NextResponse.json({ error: 'Session has no idea text' }, { status: 400 });
     }
 
-    await runSingleModule(sessionId, rawIdea, moduleId);
+    const promise = runSingleModule(sessionId, rawIdea, moduleId).catch((error) => {
+      console.error(`generate-module background error for ${moduleId}:`, error);
+    });
 
-    return NextResponse.json({ ok: true, module: moduleId });
+    if (typeof (req as any).waitUntil === 'function') {
+      (req as any).waitUntil(promise);
+    }
+
+    return NextResponse.json({ ok: true, module: moduleId, status: 'processing' });
   } catch (error) {
     console.error('generate-module:', error);
     const msg = error instanceof Error ? error.message : 'Generation failed';
